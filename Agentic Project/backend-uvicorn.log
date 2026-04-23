@@ -3,3 +3,7 @@ INFO:     127.0.0.1:56584 - "GET /favicon.ico HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:54244 - "GET / HTTP/1.1" 200 OK
 INFO:     127.0.0.1:54244 - "GET / HTTP/1.1" 200 OK
 INFO:     127.0.0.1:61815 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53419 - "OPTIONS /projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53419 - "POST /projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53419 - "GET /projects/proj_acfad5d4d2/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63704 - "POST /projects HTTP/1.1" 200 OK

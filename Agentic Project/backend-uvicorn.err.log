@@ -4,3 +4,4 @@ INFO:     Started reloader process [15160] using StatReload
 INFO:     Started server process [31264]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'backend\app.py'. Reloading...
