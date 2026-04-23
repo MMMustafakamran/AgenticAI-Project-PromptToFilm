@@ -1,95 +1,84 @@
-AgenticAI_Project_<GroupName>/
-│
-├── README.md
-├── requirements.txt
-├── .env
-├── .gitignore
-│
-├── docs/
-├── data/
-│   ├── outputs/
-│   ├── temp/
-│   └── state_versions/
-│
-├── shared/
-│   ├── schemas/
-│   ├── utils/
-│   └── constants/
-│
-├── mcp/                              # 🧩 MCP Layer (Tool Abstraction)
-│   ├── base_tool.py                  # Base Tool Interface
-│   ├── tool_registry.py              # Register & discover tools
-│   ├── tool_executor.py              # Executes tools dynamically
-│   │
-│   ├── tools/                        # 🔧 Actual Tools
-│   │   ├── llm_tools/
-│   │   │   ├── text_generator.py
-│   │   │   └── json_structurer.py
-│   │   │
-│   │   ├── audio_tools/
-│   │   │   ├── tts_tool.py
-│   │   │   ├── bgm_tool.py
-│   │   │   └── audio_merger.py
-│   │   │
-│   │   ├── vision_tools/
-│   │   │   ├── image_gen_tool.py
-│   │   │   ├── image_edit_tool.py
-│   │   │   └── style_transfer.py
-│   │   │
-│   │   ├── video_tools/
-│   │   │   ├── ffmpeg_tool.py
-│   │   │   ├── compositor_tool.py
-│   │   │   └── subtitle_tool.py
-│   │   │
-│   │   └── system_tools/
-│   │       ├── file_tool.py
-│   │       ├── state_tool.py
-│   │       └── logger_tool.py
-│
-├── agents/                           # 🤖 Agents use MCP tools
-│   ├── orchestrator/
-│   │   ├── graph.py
-│   │   ├── workflow.py
-│   │   └── state.py
-│   │
-│   ├── story_agent/                  # Phase 1
-│   │   ├── agent.py                  # Uses LLM tools
-│   │   ├── planner.py
-│   │   └── tests/
-│   │
-│   ├── audio_agent/                  # Phase 2
-│   │   ├── agent.py                  # Uses TTS + BGM tools
-│   │   └── tests/
-│   │
-│   ├── video_agent/                  # Phase 3
-│   │   ├── agent.py                  # Uses vision + video tools
-│   │   └── tests/
-│   │
-│   └── edit_agent/                   # Phase 5 ⭐
-│       ├── agent.py
-│       ├── intent_classifier.py
-│       ├── planner.py
-│       ├── executor.py               # Calls MCP tools
-│       └── tests/
-│
-├── backend/
-│   ├── app.py
-│   ├── routes/
-│   ├── services/
-│   └── websocket/
-│
-├── frontend/
-│   ├── src/
-│   └── package.json
-│
-├── state_manager/
-│   ├── state_manager.py
-│   ├── snapshot.py
-│   ├── history.py
-│   └── storage.py
-│
-├── tests/
-│   ├── unit/
-│   └── integration/
-│
-└── scripts/
+# Agentic AI Shorts MVP
+
+This project implements a local-first, cloud-ready MVP for the semester brief: one prompt goes through story generation, dialogue audio, scene image generation, video composition, and an edit agent with undo/version history.
+
+## What is implemented
+
+- FastAPI backend with project creation, phase reruns, edits, undo, artifact endpoints, and SSE progress events
+- Shared Pydantic project state with version snapshots
+- Story, audio, video, and edit agents
+- Pollinations-first image generation with local placeholder fallback
+- Cloud-ready TTS hook with synthetic fallback when no API key is set
+- React workflow UI for prompt input, phase reruns, version history, edits, and video preview
+- Unit and integration tests for core MVP behavior
+
+## Stack
+
+- Backend: FastAPI, Pydantic, SQLite, requests
+- Media: Pillow, MoviePy
+- Frontend: React + Vite
+- Providers:
+  - Story: Gemini if configured, otherwise deterministic fallback
+  - TTS: ElevenLabs if configured, otherwise synthetic fallback
+  - Image: Pollinations Flux if reachable, otherwise generated placeholder frames
+
+## Setup
+
+### Backend
+
+```bash
+cd "Agentic Project"
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn backend.app:app --reload
+```
+
+Optional environment variables:
+
+```env
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.0-flash
+ELEVENLABS_API_KEY=
+ELEVENLABS_VOICE_ID=
+ELEVENLABS_MODEL_ID=eleven_multilingual_v2
+POLLINATIONS_MODEL=flux
+```
+
+### Frontend
+
+```bash
+cd "Agentic Project/frontend"
+npm install
+npm run dev
+```
+
+If needed, point the frontend to another backend URL:
+
+```env
+VITE_API_BASE=http://127.0.0.1:8000
+```
+
+## Core API
+
+- `POST /projects`
+- `GET /projects/{id}`
+- `POST /projects/{id}/run-phase/{phase}`
+- `POST /projects/{id}/edit`
+- `POST /projects/{id}/undo`
+- `GET /projects/{id}/artifacts`
+- `GET /projects/{id}/events`
+
+## Demo-ready edit commands
+
+- `Change voice tone`
+- `Make scene darker`
+- `Remove subtitles`
+- `Speed up scene`
+- `Regenerate script`
+
+## Notes
+
+- The MVP is intentionally tuned for a 2-scene, 20-30 second short film.
+- Local fallbacks keep the demo usable even when cloud provider keys are missing.
+- For the strongest final submission, configure at least one cloud LLM and one cloud TTS provider before recording the demo.
