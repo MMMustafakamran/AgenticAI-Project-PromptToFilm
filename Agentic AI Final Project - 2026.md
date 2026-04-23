@@ -1,5 +1,3 @@
-# National University of Computer and Emerging Sciences, Islamabad
-
 ## AGENTIC AI - SEMESTER PROJECT
 
 ### AI-Powered Animated Video Generation System: From Prompt to Polished Short Film
