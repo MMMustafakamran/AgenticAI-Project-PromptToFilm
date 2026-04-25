@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -18,10 +19,20 @@ class StateManager:
         self.storage = storage or SQLiteStorage()
 
     def create_project(self, prompt: str) -> ProjectState:
-        project_id = f"proj_{uuid.uuid4().hex[:10]}"
+        project_id = self._build_project_id(prompt)
         state = ProjectState(project_id=project_id, prompt=prompt)
         self.save_state(state)
         return state
+
+    def _build_project_id(self, prompt: str) -> str:
+        prompt_slug = self._slugify(prompt)
+        return f"proj_{prompt_slug}_{uuid.uuid4().hex[:10]}"
+
+    def _slugify(self, value: str) -> str:
+        normalized = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+        if not normalized:
+            return "untitled-project"
+        return normalized[:50].strip("-") or "untitled-project"
 
     def state_path(self, project_id: str) -> Path:
         return OUTPUTS_ROOT / project_id / "project_state.json"

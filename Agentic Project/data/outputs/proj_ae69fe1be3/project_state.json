@@ -1,0 +1,298 @@
+{
+  "project_id": "proj_ae69fe1be3",
+  "prompt": "A student teaches a paper bird to sing in the rain.\n\nRevision note: make the child black",
+  "status": "completed",
+  "current_phase": "idle",
+  "current_version": "v7",
+  "story": {
+    "title": "Echoes of A Student Teaches A Paper Bird T",
+    "logline": "Aanya and Rafi chase a sudden discovery sparked by: A student teaches a paper bird to sing in the rain. Revision note: make the...",
+    "tone": "hopeful cinematic",
+    "summary": "Using the user prompt as inspiration, Aanya uncovers an unusual turning point, and Rafi helps transform it into a brief emotional payoff."
+  },
+  "characters": [
+    {
+      "character_id": "char_1",
+      "name": "Aanya",
+      "role": "curious lead",
+      "voice_style": "warm, reflective, youthful",
+      "visual_description": "short silver jacket, expressive eyes, determined posture"
+    },
+    {
+      "character_id": "char_2",
+      "name": "Rafi",
+      "role": "supportive partner",
+      "voice_style": "calm, grounded, reassuring",
+      "visual_description": "earth-toned coat, patient smile, practical explorer gear"
+    }
+  ],
+  "scenes": [
+    {
+      "scene_id": "scene_1",
+      "title": "The Unexpected Signal",
+      "duration_sec": 12,
+      "narration": "In a world shaped by A student teaches a paper bird to sing in the rain. Revision note: make the..., Aanya notices a clue that feels too alive to ignore.",
+      "dialogue": [
+        {
+          "character_id": "char_1",
+          "character_name": "Aanya",
+          "text": "Something in the air feels different.",
+          "emotion": "curious"
+        },
+        {
+          "character_id": "char_2",
+          "character_name": "Rafi",
+          "text": "That signal is coming from just ahead.",
+          "emotion": "focused"
+        }
+      ],
+      "visual_prompt": "Animated cinematic concept art of a dramatic discovery inspired by A student teaches a paper bird to sing in the rain. Revision note: make the..., glowing accents, expressive characters, painterly detail, storybook lighting",
+      "mood": "curious",
+      "subtitle_lines": [
+        "Something in the air feels different.",
+        "That signal is coming from just ahead."
+      ],
+      "image_path": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\images\\scene_1.png",
+      "clip_path": null
+    },
+    {
+      "scene_id": "scene_2",
+      "title": "Turning the Discovery Into Hope",
+      "duration_sec": 12,
+      "narration": "The clue opens into a moment of wonder, and the mystery behind A student teaches a paper bird to sing in the rain. Revision note: make the... becomes a promise.",
+      "dialogue": [
+        {
+          "character_id": "char_1",
+          "character_name": "Aanya",
+          "text": "We were meant to find this together.",
+          "emotion": "wonder"
+        },
+        {
+          "character_id": "char_2",
+          "character_name": "Rafi",
+          "text": "Then let's make sure the story doesn't end here.",
+          "emotion": "hopeful"
+        }
+      ],
+      "visual_prompt": "Animated short film frame inspired by A student teaches a paper bird to sing in the rain. Revision note: make the..., emotional reveal, soft dramatic light, hopeful horizon, polished illustration",
+      "mood": "uplifting",
+      "subtitle_lines": [
+        "We were meant to find this together.",
+        "Then let's make sure the story doesn't end here."
+      ],
+      "image_path": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\images\\scene_2.png",
+      "clip_path": null
+    }
+  ],
+  "audio": {
+    "dialogue_tracks": [
+      {
+        "scene_id": "scene_1",
+        "line_index": 0,
+        "character_id": "char_1",
+        "text": "Something in the air feels different.",
+        "file_path": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\scene_1_line_1.mp3",
+        "duration_ms": 2700
+      },
+      {
+        "scene_id": "scene_1",
+        "line_index": 1,
+        "character_id": "char_2",
+        "text": "That signal is coming from just ahead.",
+        "file_path": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\scene_1_line_2.mp3",
+        "duration_ms": 3150
+      },
+      {
+        "scene_id": "scene_2",
+        "line_index": 0,
+        "character_id": "char_1",
+        "text": "We were meant to find this together.",
+        "file_path": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\scene_2_line_1.mp3",
+        "duration_ms": 3150
+      },
+      {
+        "scene_id": "scene_2",
+        "line_index": 1,
+        "character_id": "char_2",
+        "text": "Then let's make sure the story doesn't end here.",
+        "file_path": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\scene_2_line_2.mp3",
+        "duration_ms": 4050
+      }
+    ],
+    "bgm_track": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\bgm.wav",
+    "timing_manifest": [
+      {
+        "scene_id": "scene_1",
+        "audio_file": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\scene_1_line_1.mp3",
+        "start_ms": 0,
+        "end_ms": 2700,
+        "text": "Something in the air feels different.",
+        "character_name": "Aanya"
+      },
+      {
+        "scene_id": "scene_1",
+        "audio_file": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\scene_1_line_2.mp3",
+        "start_ms": 3050,
+        "end_ms": 6200,
+        "text": "That signal is coming from just ahead.",
+        "character_name": "Rafi"
+      },
+      {
+        "scene_id": "scene_2",
+        "audio_file": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\scene_2_line_1.mp3",
+        "start_ms": 6550,
+        "end_ms": 9700,
+        "text": "We were meant to find this together.",
+        "character_name": "Aanya"
+      },
+      {
+        "scene_id": "scene_2",
+        "audio_file": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\scene_2_line_2.mp3",
+        "start_ms": 10050,
+        "end_ms": 14100,
+        "text": "Then let's make sure the story doesn't end here.",
+        "character_name": "Rafi"
+      }
+    ],
+    "final_audio_path": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\final_audio.wav",
+    "provider": "elevenlabs"
+  },
+  "video": {
+    "scene_images": [
+      "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\images\\scene_1.png",
+      "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\images\\scene_2.png"
+    ],
+    "scene_clips": [
+      "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\final_output.mp4"
+    ],
+    "subtitle_file": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\subtitles.srt",
+    "final_video_path": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\final_output.mp4",
+    "subtitles_enabled": true,
+    "image_provider": "pollinations-or-placeholder"
+  },
+  "edits": [
+    {
+      "command": "make the child black",
+      "target": "script",
+      "intent": "regenerate_script",
+      "created_at": "2026-04-25T19:48:40.835586"
+    }
+  ],
+  "artifacts": {
+    "story_json": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\story.json",
+    "timing_manifest_json": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\timing_manifest.json",
+    "subtitle_file": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\subtitles.srt",
+    "final_audio": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\final_audio.wav",
+    "final_video": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\final_output.mp4",
+    "scene_images": [
+      "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\images\\scene_1.png",
+      "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\images\\scene_2.png"
+    ]
+  },
+  "versions": [
+    {
+      "version_id": "v1",
+      "created_at": "2026-04-25T19:43:09.727267",
+      "trigger": "pipeline",
+      "changed_phase": "story",
+      "artifact_paths": [
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\story.json",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\timing_manifest.json"
+      ],
+      "parent_version": null,
+      "snapshot_path": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\state_versions\\proj_ae69fe1be3\\v1.json"
+    },
+    {
+      "version_id": "v2",
+      "created_at": "2026-04-25T19:43:31.054678",
+      "trigger": "pipeline",
+      "changed_phase": "audio",
+      "artifact_paths": [
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\story.json",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\timing_manifest.json",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\final_audio.wav"
+      ],
+      "parent_version": "v1",
+      "snapshot_path": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\state_versions\\proj_ae69fe1be3\\v2.json"
+    },
+    {
+      "version_id": "v3",
+      "created_at": "2026-04-25T19:45:38.000733",
+      "trigger": "pipeline",
+      "changed_phase": "video",
+      "artifact_paths": [
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\story.json",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\timing_manifest.json",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\subtitles.srt",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\final_audio.wav",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\final_output.mp4",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\images\\scene_1.png",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\images\\scene_2.png"
+      ],
+      "parent_version": "v2",
+      "snapshot_path": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\state_versions\\proj_ae69fe1be3\\v3.json"
+    },
+    {
+      "version_id": "v4",
+      "created_at": "2026-04-25T19:48:49.767449",
+      "trigger": "edit:regenerate_script",
+      "changed_phase": "story",
+      "artifact_paths": [
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\story.json",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\timing_manifest.json"
+      ],
+      "parent_version": "v3",
+      "snapshot_path": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\state_versions\\proj_ae69fe1be3\\v4.json"
+    },
+    {
+      "version_id": "v5",
+      "created_at": "2026-04-25T19:49:23.958000",
+      "trigger": "edit:regenerate_script",
+      "changed_phase": "audio",
+      "artifact_paths": [
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\story.json",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\timing_manifest.json",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\final_audio.wav"
+      ],
+      "parent_version": "v4",
+      "snapshot_path": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\state_versions\\proj_ae69fe1be3\\v5.json"
+    },
+    {
+      "version_id": "v6",
+      "created_at": "2026-04-25T19:51:35.265256",
+      "trigger": "edit:regenerate_script",
+      "changed_phase": "video",
+      "artifact_paths": [
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\story.json",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\timing_manifest.json",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\subtitles.srt",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\final_audio.wav",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\final_output.mp4",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\images\\scene_1.png",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\images\\scene_2.png"
+      ],
+      "parent_version": "v5",
+      "snapshot_path": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\state_versions\\proj_ae69fe1be3\\v6.json"
+    },
+    {
+      "version_id": "v7",
+      "created_at": "2026-04-25T19:51:35.323913",
+      "trigger": "edit:regenerate_script",
+      "changed_phase": "edit",
+      "artifact_paths": [
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\story.json",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\timing_manifest.json",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\subtitles.srt",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\final_audio.wav",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\final_output.mp4",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\images\\scene_1.png",
+        "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\video\\images\\scene_2.png"
+      ],
+      "parent_version": "v6",
+      "snapshot_path": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\state_versions\\proj_ae69fe1be3\\v7.json"
+    }
+  ],
+  "created_at": "2026-04-25T19:43:00.747889",
+  "updated_at": "2026-04-25T19:51:35.367764",
+  "last_error": null
+}

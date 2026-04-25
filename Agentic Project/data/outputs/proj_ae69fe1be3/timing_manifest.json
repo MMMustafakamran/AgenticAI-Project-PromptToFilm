@@ -1,0 +1,34 @@
+[
+  {
+    "scene_id": "scene_1",
+    "audio_file": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\scene_1_line_1.mp3",
+    "start_ms": 0,
+    "end_ms": 2700,
+    "text": "Something in the air feels different.",
+    "character_name": "Aanya"
+  },
+  {
+    "scene_id": "scene_1",
+    "audio_file": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\scene_1_line_2.mp3",
+    "start_ms": 3050,
+    "end_ms": 6200,
+    "text": "That signal is coming from just ahead.",
+    "character_name": "Rafi"
+  },
+  {
+    "scene_id": "scene_2",
+    "audio_file": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\scene_2_line_1.mp3",
+    "start_ms": 6550,
+    "end_ms": 9700,
+    "text": "We were meant to find this together.",
+    "character_name": "Aanya"
+  },
+  {
+    "scene_id": "scene_2",
+    "audio_file": "C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project\\data\\outputs\\proj_ae69fe1be3\\audio\\scene_2_line_2.mp3",
+    "start_ms": 10050,
+    "end_ms": 14100,
+    "text": "Then let's make sure the story doesn't end here.",
+    "character_name": "Rafi"
+  }
+]

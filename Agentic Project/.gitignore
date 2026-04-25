@@ -2,10 +2,8 @@
 node_modules/
 dist/
 __pycache__/
+.pytest_cache/
 *.pyc
-data/outputs/*
-!data/outputs/.gitkeep
+*.log
 data/temp/*
 !data/temp/.gitkeep
-data/state_versions/*
-!data/state_versions/.gitkeep
