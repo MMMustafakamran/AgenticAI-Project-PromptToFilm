@@ -48,6 +48,11 @@ async def root() -> dict:
     return {"name": "Agentic AI Shorts MVP", "status": "ok"}
 
 
+@app.get("/projects")
+async def list_projects():
+    return workflow.state_manager.list_projects()
+
+
 @app.post("/projects")
 async def create_project(payload: CreateProjectRequest):
     state = workflow.state_manager.create_project(payload.prompt)

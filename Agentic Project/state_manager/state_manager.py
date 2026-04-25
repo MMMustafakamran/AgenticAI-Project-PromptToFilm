@@ -122,3 +122,18 @@ class StateManager:
         restored.current_phase = "idle"
         self.save_state(restored)
         return restored
+
+    def list_projects(self) -> list[dict]:
+        projects = []
+        with self.storage.connect() as connection:
+            cursor = connection.execute(
+                "SELECT project_id, prompt, status, updated_at FROM projects ORDER BY updated_at DESC"
+            )
+            for row in cursor:
+                projects.append({
+                    "project_id": row["project_id"],
+                    "prompt": row["prompt"],
+                    "status": row["status"],
+                    "updated_at": row["updated_at"],
+                })
+        return projects

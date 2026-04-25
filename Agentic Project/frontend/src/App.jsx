@@ -44,6 +44,7 @@ export default function App() {
   const [project, setProject] = useState(null);
   const [editCommand, setEditCommand] = useState("");
   const [events, setEvents] = useState([]);
+  const [recentProjects, setRecentProjects] = useState([]);
   
   // Granular Loading States
   const [isGenerating, setIsGenerating] = useState(false);
@@ -79,6 +80,18 @@ export default function App() {
     return () => stream.close();
   }, [project?.project_id]);
 
+  useEffect(() => {
+    async function loadRecent() {
+      try {
+        const data = await requestJson(`${API_BASE}/projects`);
+        setRecentProjects(data);
+      } catch (err) {
+        console.error("Failed to load recent projects", err);
+      }
+    }
+    loadRecent();
+  }, []);
+
   async function requestJson(url, options = {}) {
     const response = await fetch(url, options);
     if (!response.ok) {
@@ -103,6 +116,20 @@ export default function App() {
       setUiError("");
     } catch (error) {
       console.error(error);
+    }
+  }
+
+  async function loadProject(projectId) {
+    try {
+      setIsGenerating(true);
+      setUiError("");
+      const data = await requestJson(`${API_BASE}/projects/${projectId}`);
+      setProject(data);
+      setEvents([]); // Reset events or fetch historical ones if available
+    } catch (error) {
+      setUiError(error.message);
+    } finally {
+      setIsGenerating(false);
     }
   }
 
@@ -273,6 +300,28 @@ export default function App() {
               </button>
             </div>
           </aside>
+          
+          {recentProjects.length > 0 && (
+            <div className="recent-projects glass-panel">
+              <div className="panel-header" style={{ marginBottom: "16px" }}>
+                <p className="micro-label">History</p>
+                <h3>Recent Projects</h3>
+              </div>
+              <div className="recent-grid">
+                {recentProjects.map(p => (
+                  <div key={p.project_id} className="recent-card" onClick={() => loadProject(p.project_id)}>
+                    <div className="recent-card-header">
+                      <span className="micro-label" style={{ margin: 0 }}>{p.project_id.split('_').pop()}</span>
+                      <span className={`status-badge status-${p.status}`} style={{ transform: "scale(0.8)", transformOrigin: "right" }}>
+                        {p.status}
+                      </span>
+                    </div>
+                    <strong>{p.prompt}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       )}
 

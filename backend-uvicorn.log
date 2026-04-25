@@ -22,3 +22,23 @@ INFO:     127.0.0.1:65069 - "GET /projects/proj_ae69fe1be3 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:58172 - "GET /projects/proj_ae69fe1be3 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:50443 - "GET /projects/proj_ae69fe1be3 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:55386 - "GET /projects/proj_ae69fe1be3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60468 - "OPTIONS /projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60468 - "POST /projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60785 - "GET /projects/proj_ab24cb420a/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62447 - "GET /projects/proj_ab24cb420a HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50520 - "GET /artifacts/proj_ab24cb420a/video/final_output.mp4 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:49856 - "GET /artifacts/proj_ab24cb420a/video/final_output.mp4 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:61345 - "GET /artifacts/proj_ab24cb420a/video/final_output.mp4 HTTP/1.1" 304 Not Modified
+INFO:     127.0.0.1:61345 - "GET /artifacts/proj_ab24cb420a/video/final_output.mp4 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:52271 - "POST /projects/proj_ab24cb420a/run-phase/story HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52271 - "GET /projects/proj_ab24cb420a HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50949 - "GET /projects/proj_ab24cb420a HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52271 - "GET /projects/proj_ab24cb420a HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60247 - "GET /projects HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:60247 - "GET /projects HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:49810 - "GET /projects HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:55607 - "GET /projects HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:61291 - "GET /projects HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:59237 - "GET /projects HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:49970 - "GET /projects HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:56140 - "GET /projects HTTP/1.1" 405 Method Not Allowed

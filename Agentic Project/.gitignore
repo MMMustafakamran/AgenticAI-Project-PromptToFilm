@@ -5,5 +5,9 @@ __pycache__/
 .pytest_cache/
 *.pyc
 *.log
+data/outputs/*
+!data/outputs/.gitkeep
 data/temp/*
 !data/temp/.gitkeep
+data/state_versions/*
+!data/state_versions/.gitkeep
