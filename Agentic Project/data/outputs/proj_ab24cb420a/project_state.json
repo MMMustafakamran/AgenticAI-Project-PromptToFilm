@@ -1,0 +1,43 @@
+{
+  "project_id": "proj_ab24cb420a",
+  "prompt": "a guy in the army fighing and getting caught in the gunfire and dying \n",
+  "status": "running",
+  "current_phase": "story",
+  "current_version": null,
+  "story": {
+    "title": "",
+    "logline": "",
+    "tone": "hopeful cinematic",
+    "summary": ""
+  },
+  "characters": [],
+  "scenes": [],
+  "audio": {
+    "dialogue_tracks": [],
+    "bgm_track": null,
+    "timing_manifest": [],
+    "final_audio_path": null,
+    "provider": "synthetic"
+  },
+  "video": {
+    "scene_images": [],
+    "scene_clips": [],
+    "subtitle_file": null,
+    "final_video_path": null,
+    "subtitles_enabled": true,
+    "image_provider": "placeholder"
+  },
+  "edits": [],
+  "artifacts": {
+    "story_json": null,
+    "timing_manifest_json": null,
+    "subtitle_file": null,
+    "final_audio": null,
+    "final_video": null,
+    "scene_images": []
+  },
+  "versions": [],
+  "created_at": "2026-04-25T20:46:12.584675",
+  "updated_at": "2026-04-25T20:46:12.938123",
+  "last_error": null
+}

@@ -9,7 +9,6 @@ const starterScenes = [
 ];
 const starterEvents = [
   { type: "system", status: "ready", note: "Waiting for your first prompt." },
-  { type: "tip", status: "guide", note: "Try a simple 2-scene story prompt to validate the full pipeline." },
 ];
 
 function artifactUrl(path) {
@@ -41,7 +40,7 @@ function getAgentName(type) {
 }
 
 export default function App() {
-  const [prompt, setPrompt] = useState("A young inventor finds a hidden garden inside an abandoned observatory.");
+  const [prompt, setPrompt] = useState("");
   const [project, setProject] = useState(null);
   const [editCommand, setEditCommand] = useState("");
   const [events, setEvents] = useState([]);
@@ -68,15 +67,13 @@ export default function App() {
     stream.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
-        setEvents((current) => [...current, payload]); // Keep all for terminal history
+        setEvents((current) => [...current, payload]);
         refreshProject(project.project_id);
       } catch (error) {
         console.error(error);
-        setUiError(`Could not read live event payload: ${error.message}`);
       }
     };
     stream.onerror = () => {
-      // Don't show scary error if it just closed normally
       stream.close();
     };
     return () => stream.close();
@@ -91,9 +88,7 @@ export default function App() {
         message = payload.detail ?? payload.error ?? message;
       } catch {
         const text = await response.text();
-        if (text) {
-          message = text;
-        }
+        if (text) message = text;
       }
       throw new Error(message);
     }
@@ -107,24 +102,24 @@ export default function App() {
       setProject(data);
       setUiError("");
     } catch (error) {
-      setUiError(error.message);
+      console.error(error);
     }
   }
 
   async function createProject() {
+    if (!prompt.trim()) return;
     try {
       setIsGenerating(true);
       setUiError("");
+      setEvents([{ type: "system", status: "running", note: "Initializing agents and pipeline..." }]);
       const data = await requestJson(`${API_BASE}/projects`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt }),
       });
       setProject(data);
-      setEvents([]);
     } catch (error) {
       setUiError(error.message);
-    } finally {
       setIsGenerating(false);
     }
   }
@@ -182,14 +177,48 @@ export default function App() {
 
   const versionCards = useMemo(() => (project?.versions ?? []).slice().reverse(), [project?.versions]);
   const videoUrl = artifactUrl(project?.artifacts?.final_video);
-  const sceneCount = project?.scenes?.length ?? 0;
-  const duration = (project?.scenes ?? []).reduce((sum, scene) => sum + scene.duration_sec, 0);
   const activeEvents = events.length ? events : starterEvents;
   const visibleScenes = project?.scenes?.length ? project.scenes : starterScenes;
   const runtimeError = project?.last_error ?? "";
   const combinedError = uiError || runtimeError;
   const isAnyLoading = isGenerating || isEditing || isUndoing || runningPhase !== null;
   const projectStatus = project?.status ?? "idle";
+
+  // Determine which cinematic view to show
+  const viewState = useMemo(() => {
+    if (isGenerating || projectStatus === "running" || runningPhase !== null) return "running";
+    if (projectStatus === "completed" || (projectStatus === "idle" && project?.artifacts?.final_video)) return "completed";
+    return "idle";
+  }, [isGenerating, projectStatus, runningPhase, project]);
+
+  useEffect(() => {
+    if (projectStatus === "completed" || projectStatus === "failed") {
+        setIsGenerating(false);
+    }
+  }, [projectStatus]);
+
+
+  // Helper Renders
+  const renderTerminal = () => (
+    <article className="glass-panel agent-terminal">
+      <div className="terminal-header">
+        <div>
+          <p className="micro-label">Activity</p>
+          <h3>Agent Output Logs</h3>
+        </div>
+        {viewState === "running" && <span className="loader loader-lg"></span>}
+      </div>
+      <div className="terminal-feed">
+        {activeEvents.map((ev, i) => (
+          <div className={`event-row ${getEventStyle(ev)}`} key={i}>
+            <div className="event-agent">[{getAgentName(ev.type)}]</div>
+            <div className="event-msg">{ev.note || JSON.stringify(ev)}</div>
+          </div>
+        ))}
+        <div ref={feedEndRef} />
+      </div>
+    </article>
+  );
 
   return (
     <main className="shell">
@@ -216,165 +245,155 @@ export default function App() {
         </section>
       )}
 
-      <section className="hero">
-        <div className="hero-content glass-panel">
-          <h2 className="hero-title">Create AI shorts effortlessly.</h2>
-          <p className="hero-text">
-            Provide a prompt and watch specialized agents write the story, generate audio, and render scenes in real-time. Full control with targeted edits and reversible history.
-          </p>
-        </div>
-
-        <aside className="launch-panel glass-panel">
-          <div className="panel-header">
-            <p className="micro-label">New Project</p>
-            <h3>Launch Film Run</h3>
-          </div>
-          <textarea
-            className="prompt-input"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="e.g. A cyberpunk detective exploring neon-lit alleyways..."
-            disabled={isGenerating}
-          />
-          <div className="launch-actions">
-            <button className="btn btn-primary" onClick={createProject} disabled={isAnyLoading}>
-              {isGenerating ? <><span className="loader"></span> Generating...</> : "Generate Film"}
-            </button>
-          </div>
-        </aside>
-      </section>
-
-      <section className="workspace">
-        <article className="glass-panel preview-surface">
-          <div className="panel-header">
-            <p className="micro-label">Preview</p>
-            <h3>{project?.story?.title ?? "Awaiting Title..."}</h3>
+      {/* VIEW: IDLE (Prompt Entry) */}
+      {viewState === "idle" && (
+        <section className="hero view-container">
+          <div className="hero-content">
+            <h2 className="hero-title">Create AI shorts effortlessly.</h2>
+            <p className="hero-text">
+              Provide a prompt and watch specialized agents write the story, generate audio, and render scenes in real-time. Full control with targeted edits and reversible history.
+            </p>
           </div>
 
-          {videoUrl ? (
-            <video className="player" controls src={videoUrl} autoPlay loop />
-          ) : (
-            <div className="empty-player">
-              <div className="empty-player-content">
-                <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z" />
-                </svg>
-                {projectStatus === "running" ? (
-                  <div>
-                    <span className="loader" style={{marginRight: '8px', width: '12px', height: '12px'}}></span>
-                    Rendering preview canvas...
-                  </div>
-                ) : (
-                  "Preview canvas is ready"
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="scene-grid">
-            {visibleScenes.map((scene) => (
-              <article className="scene-card" key={scene.scene_id}>
-                <span className="scene-index">{scene.scene_id.replace("_", " ")}</span>
-                <strong>{scene.title}</strong>
-                <p style={{margin: '4px 0 0', color: 'var(--text-soft)', fontSize: '0.9rem'}}>{scene.mood}</p>
-                <span className="scene-time">{scene.duration_sec}s</span>
-              </article>
-            ))}
-          </div>
-        </article>
-
-        <aside className="workspace-rail">
-          <div className="glass-panel control-panel">
+          <aside className="launch-panel glass-panel">
             <div className="panel-header">
-              <p className="micro-label">Revision Agent</p>
-              <h3>Targeted Edit</h3>
+              <p className="micro-label">New Project</p>
+              <h3>Launch Film Run</h3>
             </div>
-            <input
-              className="edit-input"
-              value={editCommand}
-              onChange={(e) => setEditCommand(e.target.value)}
-              placeholder="e.g. Change mood to suspenseful"
-              disabled={isAnyLoading || !project}
+            <textarea
+              className="prompt-input"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="e.g. A cyberpunk detective exploring neon-lit alleyways..."
+              disabled={isGenerating}
             />
-            <div className="button-group">
-              <button className="btn btn-primary" onClick={submitEdit} disabled={isAnyLoading || !project || !editCommand.trim()}>
-                {isEditing ? <><span className="loader"></span> Editing</> : "Apply Edit"}
-              </button>
-              <button className="btn btn-secondary" onClick={() => undo()} disabled={isAnyLoading || !project || versionCards.length <= 1}>
-                {isUndoing ? <span className="loader"></span> : "Undo"}
+            <div className="launch-actions">
+              <button className="btn btn-primary" onClick={createProject} disabled={!prompt.trim() || isGenerating}>
+                Generate Film
               </button>
             </div>
-          </div>
+          </aside>
+        </section>
+      )}
 
-          <div className="glass-panel control-panel">
-            <div className="panel-header">
-              <p className="micro-label">Pipeline Control</p>
-              <h3>Rerun Phase</h3>
-            </div>
-            <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-              {phases.map((phase) => (
-                <button 
-                  key={phase} 
-                  className="btn btn-secondary" 
-                  onClick={() => rerunPhase(phase)} 
-                  disabled={isAnyLoading || !project}
-                  style={{justifyContent: 'flex-start'}}
-                >
-                  {runningPhase === phase ? <span className="loader"></span> : null}
-                  {phase.charAt(0).toUpperCase() + phase.slice(1)} Phase
-                </button>
-              ))}
-            </div>
+      {/* VIEW: RUNNING (Cinematic Progress) */}
+      {viewState === "running" && (
+        <section className="progress-view view-container">
+          <div className="progress-header">
+            <h2>Agents are working...</h2>
+            <p>Phase: {project?.current_phase ? project.current_phase.charAt(0).toUpperCase() + project.current_phase.slice(1) : "Initializing pipeline"}</p>
           </div>
-        </aside>
-      </section>
+          {renderTerminal()}
+        </section>
+      )}
 
-      <section className="bottom-grid">
-        <article className="glass-panel agent-terminal">
-          <div className="terminal-header">
-            <div>
-              <p className="micro-label">Activity</p>
-              <h3>Agent Output Logs</h3>
-            </div>
-            {projectStatus === "running" && <span className="loader" style={{borderColor: 'var(--text-muted)', borderTopColor: 'var(--accent)'}}></span>}
-          </div>
-          <div className="terminal-feed">
-            {activeEvents.map((ev, i) => (
-              <div className={`event-row ${getEventStyle(ev)}`} key={i}>
-                <div className="event-agent">[{getAgentName(ev.type)}]</div>
-                <div className="event-msg">{ev.note || JSON.stringify(ev)}</div>
+      {/* VIEW: COMPLETED (Workspace / Preview) */}
+      {viewState === "completed" && (
+        <section className="workspace view-container">
+          <div>
+            <article className="glass-panel preview-surface">
+              <div className="panel-header">
+                <p className="micro-label">Preview</p>
+                <h3>{project?.story?.title ?? "Awaiting Title..."}</h3>
               </div>
-            ))}
-            <div ref={feedEndRef} />
-          </div>
-        </article>
 
-        <article className="glass-panel" style={{padding: '24px'}}>
-          <div className="panel-header">
-            <p className="micro-label">Artifacts</p>
-            <h3>Generated Files</h3>
+              {videoUrl ? (
+                <video className="player" controls src={videoUrl} autoPlay loop />
+              ) : (
+                <div className="empty-player">
+                  <div>Video file missing or failed to generate.</div>
+                </div>
+              )}
+
+              <div className="scene-grid">
+                {visibleScenes.map((scene) => (
+                  <article className="scene-card" key={scene.scene_id}>
+                    <span className="scene-index">{scene.scene_id.replace("_", " ")}</span>
+                    <strong>{scene.title}</strong>
+                    <p style={{margin: '4px 0 0', color: 'var(--text-soft)', fontSize: '0.9rem'}}>{scene.mood}</p>
+                    <span className="scene-time">{scene.duration_sec}s</span>
+                  </article>
+                ))}
+              </div>
+            </article>
+            
+            <div style={{marginTop: '24px'}}>
+              {renderTerminal()}
+            </div>
           </div>
-          <div className="artifact-grid">
-            <div className={`artifact-item ${project?.artifacts?.story_json ? 'ready' : ''}`}>
-              <span>Story JSON</span>
-              <strong>{project?.artifacts?.story_json ? "Ready" : "Pending"}</strong>
+
+          <aside className="workspace-rail">
+            <div className="glass-panel control-panel">
+              <div className="panel-header">
+                <p className="micro-label">Revision Agent</p>
+                <h3>Targeted Edit</h3>
+              </div>
+              <input
+                className="edit-input"
+                value={editCommand}
+                onChange={(e) => setEditCommand(e.target.value)}
+                placeholder="e.g. Change mood to suspenseful"
+                disabled={isAnyLoading || !project}
+              />
+              <div className="button-group">
+                <button className="btn btn-primary" onClick={submitEdit} disabled={isAnyLoading || !project || !editCommand.trim()}>
+                  {isEditing ? <><span className="loader"></span></> : "Apply"}
+                </button>
+                <button className="btn btn-secondary" onClick={() => undo()} disabled={isAnyLoading || !project || versionCards.length <= 1}>
+                  {isUndoing ? <span className="loader"></span> : "Undo"}
+                </button>
+              </div>
             </div>
-            <div className={`artifact-item ${project?.artifacts?.final_audio ? 'ready' : ''}`}>
-              <span>Audio Track</span>
-              <strong>{project?.artifacts?.final_audio ? "Ready" : "Pending"}</strong>
+
+            <div className="glass-panel control-panel">
+              <div className="panel-header">
+                <p className="micro-label">Pipeline Control</p>
+                <h3>Rerun Phase</h3>
+              </div>
+              <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                {phases.map((phase) => (
+                  <button 
+                    key={phase} 
+                    className="btn btn-secondary" 
+                    onClick={() => rerunPhase(phase)} 
+                    disabled={isAnyLoading || !project}
+                    style={{justifyContent: 'flex-start'}}
+                  >
+                    {runningPhase === phase ? <span className="loader"></span> : null}
+                    {phase.charAt(0).toUpperCase() + phase.slice(1)} Phase
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className={`artifact-item ${project?.artifacts?.subtitle_file ? 'ready' : ''}`}>
-              <span>Subtitles</span>
-              <strong>{project?.artifacts?.subtitle_file ? "Ready" : "Pending"}</strong>
-            </div>
-            <div className={`artifact-item ${project?.artifacts?.final_video ? 'ready' : ''}`}>
-              <span>Final MP4</span>
-              <strong>{project?.artifacts?.final_video ? "Ready" : "Pending"}</strong>
-            </div>
-          </div>
-        </article>
-      </section>
+            
+            <article className="glass-panel control-panel">
+              <div className="panel-header">
+                <p className="micro-label">Artifacts</p>
+                <h3>Files</h3>
+              </div>
+              <div className="artifact-grid">
+                <div className={`artifact-item ${project?.artifacts?.story_json ? 'ready' : ''}`}>
+                  <span>Story JSON</span>
+                  <strong>{project?.artifacts?.story_json ? "Ready" : "Pending"}</strong>
+                </div>
+                <div className={`artifact-item ${project?.artifacts?.final_audio ? 'ready' : ''}`}>
+                  <span>Audio Track</span>
+                  <strong>{project?.artifacts?.final_audio ? "Ready" : "Pending"}</strong>
+                </div>
+                <div className={`artifact-item ${project?.artifacts?.subtitle_file ? 'ready' : ''}`}>
+                  <span>Subtitles</span>
+                  <strong>{project?.artifacts?.subtitle_file ? "Ready" : "Pending"}</strong>
+                </div>
+                <div className={`artifact-item ${project?.artifacts?.final_video ? 'ready' : ''}`}>
+                  <span>Final MP4</span>
+                  <strong>{project?.artifacts?.final_video ? "Ready" : "Pending"}</strong>
+                </div>
+              </div>
+            </article>
+            
+          </aside>
+        </section>
+      )}
     </main>
   );
 }
