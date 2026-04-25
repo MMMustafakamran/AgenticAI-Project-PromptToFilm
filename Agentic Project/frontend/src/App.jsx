@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8000";
 
@@ -21,18 +21,46 @@ function artifactUrl(path) {
   return `${API_BASE}/artifacts${normalized.slice(index + marker.length - 1)}`;
 }
 
-function prettyStatus(status) {
-  if (!status) return "Idle";
-  return status.charAt(0).toUpperCase() + status.slice(1);
+function getEventStyle(event) {
+  if (event.type === "error" || event.status === "failed") return "error";
+  if (event.status === "completed" || event.status === "success") return "success";
+  if (event.type === "tip" || event.type === "warning") return "warning";
+  return "info";
+}
+
+function getAgentName(type) {
+  const map = {
+    "system": "System",
+    "tip": "Guide",
+    "story_agent": "Story Agent",
+    "audio_agent": "Audio Agent",
+    "video_agent": "Video Agent",
+    "error": "Error",
+  };
+  return map[type] || type || "System";
 }
 
 export default function App() {
   const [prompt, setPrompt] = useState("A young inventor finds a hidden garden inside an abandoned observatory.");
   const [project, setProject] = useState(null);
-  const [editCommand, setEditCommand] = useState("Make scene darker");
+  const [editCommand, setEditCommand] = useState("");
   const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(false);
+  
+  // Granular Loading States
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isUndoing, setIsUndoing] = useState(false);
+  const [runningPhase, setRunningPhase] = useState(null);
+  
   const [uiError, setUiError] = useState("");
+  
+  const feedEndRef = useRef(null);
+
+  useEffect(() => {
+    if (feedEndRef.current) {
+      feedEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [events]);
 
   useEffect(() => {
     if (!project?.project_id) return undefined;
@@ -40,7 +68,7 @@ export default function App() {
     stream.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
-        setEvents((current) => [payload, ...current].slice(0, 10));
+        setEvents((current) => [...current, payload]); // Keep all for terminal history
         refreshProject(project.project_id);
       } catch (error) {
         console.error(error);
@@ -48,7 +76,7 @@ export default function App() {
       }
     };
     stream.onerror = () => {
-      setUiError("Live event stream disconnected. Refresh the page or rerun a phase.");
+      // Don't show scary error if it just closed normally
       stream.close();
     };
     return () => stream.close();
@@ -85,7 +113,7 @@ export default function App() {
 
   async function createProject() {
     try {
-      setLoading(true);
+      setIsGenerating(true);
       setUiError("");
       const data = await requestJson(`${API_BASE}/projects`, {
         method: "POST",
@@ -97,46 +125,47 @@ export default function App() {
     } catch (error) {
       setUiError(error.message);
     } finally {
-      setLoading(false);
+      setIsGenerating(false);
     }
   }
 
   async function rerunPhase(phase) {
     if (!project) return;
     try {
-      setLoading(true);
+      setRunningPhase(phase);
       setUiError("");
       await requestJson(`${API_BASE}/projects/${project.project_id}/run-phase/${phase}`, { method: "POST" });
       await refreshProject();
     } catch (error) {
       setUiError(error.message);
     } finally {
-      setLoading(false);
+      setRunningPhase(null);
     }
   }
 
   async function submitEdit() {
-    if (!project) return;
+    if (!project || !editCommand.trim()) return;
     try {
-      setLoading(true);
+      setIsEditing(true);
       setUiError("");
       await requestJson(`${API_BASE}/projects/${project.project_id}/edit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ command: editCommand }),
       });
+      setEditCommand("");
       await refreshProject();
     } catch (error) {
       setUiError(error.message);
     } finally {
-      setLoading(false);
+      setIsEditing(false);
     }
   }
 
   async function undo(versionId = null) {
     if (!project) return;
     try {
-      setLoading(true);
+      setIsUndoing(true);
       setUiError("");
       await requestJson(`${API_BASE}/projects/${project.project_id}/undo`, {
         method: "POST",
@@ -147,7 +176,7 @@ export default function App() {
     } catch (error) {
       setUiError(error.message);
     } finally {
-      setLoading(false);
+      setIsUndoing(false);
     }
   }
 
@@ -159,99 +188,86 @@ export default function App() {
   const visibleScenes = project?.scenes?.length ? project.scenes : starterScenes;
   const runtimeError = project?.last_error ?? "";
   const combinedError = uiError || runtimeError;
+  const isAnyLoading = isGenerating || isEditing || isUndoing || runningPhase !== null;
+  const projectStatus = project?.status ?? "idle";
 
   return (
     <main className="shell">
-      <section className="topbar">
+      <section className="topbar glass-panel">
         <div className="brand-lockup">
           <span className="brand-mark" />
           <div>
-            <p className="micro-label">Agentic AI Final Project</p>
             <h1 className="brand-title">Agentic Shorts Studio</h1>
           </div>
         </div>
-        <div className="topbar-meta">
-          <span className={`status-badge status-${project?.status ?? "idle"}`}>{prettyStatus(project?.status ?? "idle")}</span>
-          <span className="muted-chip">{project?.current_version ?? "No version yet"}</span>
+        <div>
+          <span className={`status-badge status-${projectStatus}`}>
+            {projectStatus.charAt(0).toUpperCase() + projectStatus.slice(1)}
+          </span>
         </div>
       </section>
 
-      <section className="hero">
-        <div className="hero-copy">
-          <p className="section-kicker">Prompt-to-film workspace</p>
-          <h2 className="hero-title">A minimal control surface for story, voice, visuals, edits, and reversible runs.</h2>
-          <p className="hero-text">
-            Designed for demo day: clean enough to feel credible, structured enough to show the full agentic pipeline without visual noise.
-          </p>
-
-          <div className="metric-row">
-            <article className="metric-card">
-              <span className="metric-label">Scenes</span>
-              <strong>{sceneCount || "02"}</strong>
-            </article>
-            <article className="metric-card">
-              <span className="metric-label">Runtime</span>
-              <strong>{duration ? `${duration}s` : "24s"}</strong>
-            </article>
-            <article className="metric-card">
-              <span className="metric-label">Current phase</span>
-              <strong>{project?.current_phase ?? "idle"}</strong>
-            </article>
+      {combinedError && (
+        <section className="error-banner">
+          <div>
+            <strong>Pipeline Error</strong>
+            <span>{combinedError}</span>
           </div>
+        </section>
+      )}
+
+      <section className="hero">
+        <div className="hero-content glass-panel">
+          <h2 className="hero-title">Create AI shorts effortlessly.</h2>
+          <p className="hero-text">
+            Provide a prompt and watch specialized agents write the story, generate audio, and render scenes in real-time. Full control with targeted edits and reversible history.
+          </p>
         </div>
 
-        <aside className="launch-panel">
-          <div className="panel-header compact">
-            <div>
-              <p className="micro-label">Launch input</p>
-              <h3>Create a film run</h3>
-            </div>
-            <span className="soft-pill">Local-first</span>
+        <aside className="launch-panel glass-panel">
+          <div className="panel-header">
+            <p className="micro-label">New Project</p>
+            <h3>Launch Film Run</h3>
           </div>
-
           <textarea
             className="prompt-input"
             value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
-            placeholder="Describe the short film you want to generate"
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="e.g. A cyberpunk detective exploring neon-lit alleyways..."
+            disabled={isGenerating}
           />
-
           <div className="launch-actions">
-            <button className="primary-button" onClick={createProject} disabled={loading}>
-              {loading ? "Generating..." : "Generate film"}
+            <button className="btn btn-primary" onClick={createProject} disabled={isAnyLoading}>
+              {isGenerating ? <><span className="loader"></span> Generating...</> : "Generate Film"}
             </button>
-            <p className="helper-copy">Cloud providers are optional. The fallback pipeline still runs locally for demos.</p>
           </div>
         </aside>
       </section>
 
-      {combinedError ? (
-        <section className="error-banner">
-          <div>
-            <p className="micro-label">Pipeline error</p>
-            <strong>Something failed during a request or phase run.</strong>
-            <p>{combinedError}</p>
-          </div>
-        </section>
-      ) : null}
-
       <section className="workspace">
-        <article className="surface preview-surface">
+        <article className="glass-panel preview-surface">
           <div className="panel-header">
-            <div>
-              <p className="micro-label">Output preview</p>
-              <h3>{project?.story?.title ?? "No film generated yet"}</h3>
-            </div>
-            <span className="soft-pill">{project?.project_id ?? "Project pending"}</span>
+            <p className="micro-label">Preview</p>
+            <h3>{project?.story?.title ?? "Awaiting Title..."}</h3>
           </div>
 
           {videoUrl ? (
-            <video className="player" controls src={videoUrl} />
+            <video className="player" controls src={videoUrl} autoPlay loop />
           ) : (
             <div className="empty-player">
-              <div>
-                <strong>The preview canvas is ready.</strong>
-                <p>Your generated film, subtitles, and scene snapshots will appear here after the video phase completes.</p>
+              <div className="empty-player-content">
+                <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z" />
+                </svg>
+                {projectStatus === "running" ? (
+                  <div>
+                    <span className="loader" style={{marginRight: '8px', width: '12px', height: '12px'}}></span>
+                    Rendering preview canvas...
+                  </div>
+                ) : (
+                  "Preview canvas is ready"
+                )}
               </div>
             </div>
           )}
@@ -261,7 +277,7 @@ export default function App() {
               <article className="scene-card" key={scene.scene_id}>
                 <span className="scene-index">{scene.scene_id.replace("_", " ")}</span>
                 <strong>{scene.title}</strong>
-                <p>{scene.mood}</p>
+                <p style={{margin: '4px 0 0', color: 'var(--text-soft)', fontSize: '0.9rem'}}>{scene.mood}</p>
                 <span className="scene-time">{scene.duration_sec}s</span>
               </article>
             ))}
@@ -269,114 +285,90 @@ export default function App() {
         </article>
 
         <aside className="workspace-rail">
-          <article className="surface dark-surface">
+          <div className="glass-panel control-panel">
             <div className="panel-header">
-              <div>
-                <p className="micro-label">Pipeline</p>
-                <h3>Phase controls</h3>
-              </div>
+              <p className="micro-label">Revision Agent</p>
+              <h3>Targeted Edit</h3>
             </div>
-            <div className="phase-stack">
+            <input
+              className="edit-input"
+              value={editCommand}
+              onChange={(e) => setEditCommand(e.target.value)}
+              placeholder="e.g. Change mood to suspenseful"
+              disabled={isAnyLoading || !project}
+            />
+            <div className="button-group">
+              <button className="btn btn-primary" onClick={submitEdit} disabled={isAnyLoading || !project || !editCommand.trim()}>
+                {isEditing ? <><span className="loader"></span> Editing</> : "Apply Edit"}
+              </button>
+              <button className="btn btn-secondary" onClick={() => undo()} disabled={isAnyLoading || !project || versionCards.length <= 1}>
+                {isUndoing ? <span className="loader"></span> : "Undo"}
+              </button>
+            </div>
+          </div>
+
+          <div className="glass-panel control-panel">
+            <div className="panel-header">
+              <p className="micro-label">Pipeline Control</p>
+              <h3>Rerun Phase</h3>
+            </div>
+            <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
               {phases.map((phase) => (
-                <div className="phase-tile" key={phase}>
-                  <div>
-                    <strong>{phase}</strong>
-                    <p>{project?.current_phase === phase ? "Running now" : "Available for rerun"}</p>
-                  </div>
-                  <button className="secondary-button" onClick={() => rerunPhase(phase)} disabled={!project || loading}>
-                    Rerun
-                  </button>
-                </div>
+                <button 
+                  key={phase} 
+                  className="btn btn-secondary" 
+                  onClick={() => rerunPhase(phase)} 
+                  disabled={isAnyLoading || !project}
+                  style={{justifyContent: 'flex-start'}}
+                >
+                  {runningPhase === phase ? <span className="loader"></span> : null}
+                  {phase.charAt(0).toUpperCase() + phase.slice(1)} Phase
+                </button>
               ))}
             </div>
-          </article>
-
-          <article className="surface dark-surface">
-            <div className="panel-header">
-              <div>
-                <p className="micro-label">Edit agent</p>
-                <h3>Targeted revision</h3>
-              </div>
-              <span className="soft-pill">Undo ready</span>
-            </div>
-
-            <div className="edit-stack">
-              <input
-                className="inline-input"
-                value={editCommand}
-                onChange={(event) => setEditCommand(event.target.value)}
-                placeholder="Make scene darker"
-              />
-              <div className="button-row">
-                <button className="primary-button" onClick={submitEdit} disabled={!project || loading}>
-                  Apply edit
-                </button>
-                <button className="ghost-button" onClick={() => undo()} disabled={!project || loading}>
-                  Undo latest
-                </button>
-              </div>
-            </div>
-
-            <div className="version-list">
-              {versionCards.length ? (
-                versionCards.map((version) => (
-                  <div className="version-item" key={version.version_id}>
-                    <div>
-                      <strong>{version.version_id}</strong>
-                      <p>{version.trigger}</p>
-                    </div>
-                    <button className="text-button" onClick={() => undo(version.version_id)} disabled={loading}>
-                      Restore
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <p className="empty-copy">Versions appear after the first successful phase run.</p>
-              )}
-            </div>
-          </article>
+          </div>
         </aside>
       </section>
 
       <section className="bottom-grid">
-        <article className="surface">
-          <div className="panel-header">
+        <article className="glass-panel agent-terminal">
+          <div className="terminal-header">
             <div>
               <p className="micro-label">Activity</p>
-              <h3>Live events</h3>
+              <h3>Agent Output Logs</h3>
             </div>
+            {projectStatus === "running" && <span className="loader" style={{borderColor: 'var(--text-muted)', borderTopColor: 'var(--accent)'}}></span>}
           </div>
-          <div className="event-stack">
-            {activeEvents.map((event, index) => (
-              <div className="event-item" key={`${event.type}-${index}`}>
-                <span className="event-type">{event.type}</span>
-                <code>{event.note ?? JSON.stringify(event)}</code>
+          <div className="terminal-feed">
+            {activeEvents.map((ev, i) => (
+              <div className={`event-row ${getEventStyle(ev)}`} key={i}>
+                <div className="event-agent">[{getAgentName(ev.type)}]</div>
+                <div className="event-msg">{ev.note || JSON.stringify(ev)}</div>
               </div>
             ))}
+            <div ref={feedEndRef} />
           </div>
         </article>
 
-        <article className="surface">
+        <article className="glass-panel" style={{padding: '24px'}}>
           <div className="panel-header">
-            <div>
-              <p className="micro-label">Artifacts</p>
-              <h3>Generated outputs</h3>
-            </div>
+            <p className="micro-label">Artifacts</p>
+            <h3>Generated Files</h3>
           </div>
           <div className="artifact-grid">
-            <div className="artifact-card">
+            <div className={`artifact-item ${project?.artifacts?.story_json ? 'ready' : ''}`}>
               <span>Story JSON</span>
               <strong>{project?.artifacts?.story_json ? "Ready" : "Pending"}</strong>
             </div>
-            <div className="artifact-card">
-              <span>Audio track</span>
+            <div className={`artifact-item ${project?.artifacts?.final_audio ? 'ready' : ''}`}>
+              <span>Audio Track</span>
               <strong>{project?.artifacts?.final_audio ? "Ready" : "Pending"}</strong>
             </div>
-            <div className="artifact-card">
-              <span>Subtitle file</span>
+            <div className={`artifact-item ${project?.artifacts?.subtitle_file ? 'ready' : ''}`}>
+              <span>Subtitles</span>
               <strong>{project?.artifacts?.subtitle_file ? "Ready" : "Pending"}</strong>
             </div>
-            <div className="artifact-card">
+            <div className={`artifact-item ${project?.artifacts?.final_video ? 'ready' : ''}`}>
               <span>Final MP4</span>
               <strong>{project?.artifacts?.final_video ? "Ready" : "Pending"}</strong>
             </div>
