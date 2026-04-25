@@ -52,8 +52,12 @@ class WorkflowService:
         self._invalidate_downstream(state, phase)
         self.state_manager.save_state(state)
         await self.broker.publish(project_id, {"type": "phase", "phase": phase, "status": "started"})
+        
+        def progress_cb(progress: int, note: str):
+            self.broker.publish_sync(project_id, {"type": "progress", "phase": phase, "progress": progress, "note": note})
+            
         try:
-            updated = self.graph.run_phase(phase, state)
+            updated = self.graph.run_phase(phase, state, progress_cb=progress_cb)
             updated.current_phase = phase
             updated.status = "running"
             updated.last_error = None

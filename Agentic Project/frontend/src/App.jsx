@@ -1,14 +1,17 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { 
+  Play, Video, Music, FileText, RefreshCw, Download, 
+  History, Undo2, Send, Wand2, CheckCircle2, CircleDashed,
+  Sparkles, Layers, TerminalSquare, FileJson, MessageSquare,
+  Braces, Volume2, ImagePlay, Activity
+} from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8000";
 
-const phases = ["story", "audio", "video"];
-const starterScenes = [
-  { scene_id: "scene_1", title: "Discovery beat", mood: "curious", duration_sec: 12 },
-  { scene_id: "scene_2", title: "Resolution beat", mood: "uplifting", duration_sec: 12 },
-];
-const starterEvents = [
-  { type: "system", status: "ready", note: "Waiting for your first prompt." },
+const PHASES = [
+  { id: 'story', title: 'Phase 1: Story & Script', icon: FileText, member: 'Member 1' },
+  { id: 'audio', title: 'Phase 2: Audio & TTS', icon: Music, member: 'Member 2' },
+  { id: 'video', title: 'Phase 3: Video Compositing', icon: Video, member: 'Member 3' }
 ];
 
 function artifactUrl(path) {
@@ -20,77 +23,129 @@ function artifactUrl(path) {
   return `${API_BASE}/artifacts${normalized.slice(index + marker.length - 1)}`;
 }
 
-function getEventStyle(event) {
-  if (event.type === "error" || event.status === "failed") return "error";
-  if (event.status === "completed" || event.status === "success") return "success";
-  if (event.type === "tip" || event.type === "warning") return "warning";
-  return "info";
-}
-
-function getAgentName(type) {
-  const map = {
-    "system": "System",
-    "tip": "Guide",
-    "story_agent": "Story Agent",
-    "audio_agent": "Audio Agent",
-    "video_agent": "Video Agent",
-    "error": "Error",
-  };
-  return map[type] || type || "System";
-}
-
 export default function App() {
-  const [prompt, setPrompt] = useState("");
+  const [appState, setAppState] = useState('idle'); // 'idle' | 'generating' | 'completed' | 'failed'
+  const [mainPrompt, setMainPrompt] = useState('');
+  const [editPrompt, setEditPrompt] = useState('');
+  
   const [project, setProject] = useState(null);
-  const [editCommand, setEditCommand] = useState("");
   const [events, setEvents] = useState([]);
-  const [recentProjects, setRecentProjects] = useState([]);
+  const [uiError, setUiError] = useState('');
   
-  // Granular Loading States
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isUndoing, setIsUndoing] = useState(false);
-  const [runningPhase, setRunningPhase] = useState(null);
+  // Progress tracking
+  const [progress, setProgress] = useState({ story: 0, audio: 0, video: 0, edit: 0 });
+  const [activePhase, setActivePhase] = useState(null);
   
-  const [uiError, setUiError] = useState("");
-  
-  const feedEndRef = useRef(null);
+  const videoRef = useRef(null);
 
-  useEffect(() => {
-    if (feedEndRef.current) {
-      feedEndRef.current.scrollIntoView({ behavior: "smooth" });
+  // Derive phase outputs from project state to mimic the inspiration UI
+  const phaseOutputs = useMemo(() => {
+    if (!project) return { story: null, audio: null, video: null };
+    
+    let storyOutput = null;
+    if (project.artifacts?.story_json) {
+      storyOutput = {
+        icon: Braces,
+        title: "story_schema.json",
+        data: `{\n  "title": "${project.story?.title || 'Unknown'}",\n  "scenes": ${project.scenes?.length || 0},\n  "characters": ${project.characters?.length || 0}\n}`
+      };
     }
-  }, [events]);
+    
+    let audioOutput = null;
+    if (project.artifacts?.timing_manifest_json) {
+      audioOutput = {
+        icon: Volume2,
+        title: "timing_manifest.json",
+        data: `Tracks: ${project.audio?.dialogue_tracks?.length || 0}\nBGM: Generated\nTotal Audio Ready`
+      };
+    }
+    
+    let videoOutput = null;
+    if (project.artifacts?.final_video) {
+      videoOutput = {
+        icon: ImagePlay,
+        title: "render_pipeline.log",
+        data: `[Stable Diffusion] Images compiled\n[MoviePy] A/V compositing successful\n[FFmpeg] Output saved`
+      };
+    }
+    
+    return { story: storyOutput, audio: audioOutput, video: videoOutput };
+  }, [project]);
+
+  const versions = useMemo(() => {
+    return (project?.versions || []).slice().reverse().map(v => ({
+      id: v.version_id,
+      timestamp: new Date().toLocaleTimeString(),
+      trigger: v.trigger,
+      videoUrl: artifactUrl(v.artifact_paths?.find(p => p.endsWith('.mp4')))
+    }));
+  }, [project]);
+
+  const currentVersionId = project?.current_version;
+  const currentVersion = versions.find(v => v.id === currentVersionId);
+  const videoUrl = artifactUrl(project?.artifacts?.final_video);
 
   useEffect(() => {
     if (!project?.project_id) return undefined;
     const stream = new EventSource(`${API_BASE}/projects/${project.project_id}/events`);
+    
     stream.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
         setEvents((current) => [...current, payload]);
+        
+        if (payload.type === "phase") {
+          if (payload.status === "started") {
+            setActivePhase(payload.phase);
+            setProgress(p => ({ ...p, [payload.phase]: 5 }));
+          } else if (payload.status === "completed") {
+            setProgress(p => ({ ...p, [payload.phase]: 100 }));
+            if (activePhase === payload.phase) setActivePhase(null);
+          } else if (payload.status === "failed") {
+            setActivePhase(null);
+          }
+        } else if (payload.type === "progress") {
+          setProgress(p => ({ ...p, [payload.phase]: Math.max(p[payload.phase], payload.progress) }));
+        } else if (payload.type === "edit") {
+          if (payload.status === "completed") {
+            setProgress(p => ({ ...p, edit: 100 }));
+            setActivePhase(null);
+          } else if (payload.status === "failed") {
+            setActivePhase(null);
+          }
+        } else if (payload.type === "status") {
+          if (payload.status === "completed") {
+            setAppState('completed');
+            setProgress({ story: 100, audio: 100, video: 100, edit: 100 });
+          } else if (payload.status === "failed") {
+            setAppState('failed');
+            setUiError(payload.error || "Pipeline failed");
+          }
+        }
+        
         refreshProject(project.project_id);
       } catch (error) {
         console.error(error);
       }
     };
-    stream.onerror = () => {
-      stream.close();
-    };
+    
+    stream.onerror = () => stream.close();
     return () => stream.close();
   }, [project?.project_id]);
 
   useEffect(() => {
-    async function loadRecent() {
-      try {
-        const data = await requestJson(`${API_BASE}/projects`);
-        setRecentProjects(data);
-      } catch (err) {
-        console.error("Failed to load recent projects", err);
+    if (project) {
+      if (project.status === "running") {
+        setAppState('generating');
+      } else if (project.status === "completed") {
+        setAppState('completed');
+        setProgress({ story: 100, audio: 100, video: 100, edit: 100 });
+      } else if (project.status === "failed") {
+        setAppState('failed');
+        setUiError(project.last_error || "Pipeline failed");
       }
     }
-    loadRecent();
-  }, []);
+  }, [project?.status]);
 
   async function requestJson(url, options = {}) {
     const response = await fetch(url, options);
@@ -119,372 +174,353 @@ export default function App() {
     }
   }
 
-  async function loadProject(projectId) {
+  const handleInitialSubmit = async (e) => {
+    e.preventDefault();
+    if (!mainPrompt.trim()) return;
+    
     try {
-      setIsGenerating(true);
+      setAppState('generating');
       setUiError("");
-      const data = await requestJson(`${API_BASE}/projects/${projectId}`);
-      setProject(data);
-      setEvents([]); // Reset events or fetch historical ones if available
-    } catch (error) {
-      setUiError(error.message);
-    } finally {
-      setIsGenerating(false);
-    }
-  }
-
-  async function createProject() {
-    if (!prompt.trim()) return;
-    try {
-      setIsGenerating(true);
-      setUiError("");
-      setEvents([{ type: "system", status: "running", note: "Initializing agents and pipeline..." }]);
+      setProgress({ story: 0, audio: 0, video: 0, edit: 0 });
+      setActivePhase('story');
+      setEvents([]);
+      
       const data = await requestJson(`${API_BASE}/projects`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt: mainPrompt }),
       });
       setProject(data);
     } catch (error) {
       setUiError(error.message);
-      setIsGenerating(false);
+      setAppState('failed');
     }
-  }
+  };
 
-  async function rerunPhase(phase) {
-    if (!project) return;
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editPrompt.trim() || !project) return;
+    
     try {
-      setRunningPhase(phase);
+      setAppState('generating');
+      setActivePhase('edit');
       setUiError("");
-      await requestJson(`${API_BASE}/projects/${project.project_id}/run-phase/${phase}`, { method: "POST" });
-      await refreshProject();
-    } catch (error) {
-      setUiError(error.message);
-    } finally {
-      setRunningPhase(null);
-    }
-  }
-
-  async function submitEdit() {
-    if (!project || !editCommand.trim()) return;
-    try {
-      setIsEditing(true);
-      setUiError("");
+      
       await requestJson(`${API_BASE}/projects/${project.project_id}/edit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ command: editCommand }),
+        body: JSON.stringify({ command: editPrompt }),
       });
-      setEditCommand("");
+      setEditPrompt("");
       await refreshProject();
     } catch (error) {
       setUiError(error.message);
-    } finally {
-      setIsEditing(false);
+      setAppState('failed');
     }
-  }
+  };
 
-  async function undo(versionId = null) {
+  const handleRevert = async (versionId) => {
     if (!project) return;
     try {
-      setIsUndoing(true);
+      setAppState('generating');
       setUiError("");
       await requestJson(`${API_BASE}/projects/${project.project_id}/undo`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(versionId ? { version_id: versionId } : {}),
+        body: JSON.stringify({ version_id: versionId }),
       });
+      await refreshProject();
+      setAppState('completed');
+    } catch (error) {
+      setUiError(error.message);
+      setAppState('failed');
+    }
+  };
+
+  const handleRerunPhase = async (phaseId) => {
+    if (!project) return;
+    try {
+      setAppState('generating');
+      setActivePhase(phaseId);
+      
+      let newProg = { ...progress, [phaseId]: 0 };
+      if (phaseId === 'story') newProg = { story: 0, audio: 0, video: 0 };
+      if (phaseId === 'audio') newProg = { ...newProg, audio: 0, video: 0 };
+      setProgress(newProg);
+      
+      setUiError("");
+      await requestJson(`${API_BASE}/projects/${project.project_id}/run-phase/${phaseId}`, { method: "POST" });
       await refreshProject();
     } catch (error) {
       setUiError(error.message);
-    } finally {
-      setIsUndoing(false);
+      setAppState('failed');
     }
-  }
+  };
 
-  const versionCards = useMemo(() => (project?.versions ?? []).slice().reverse(), [project?.versions]);
-  const videoUrl = artifactUrl(project?.artifacts?.final_video);
-  const activeEvents = events.length ? events : starterEvents;
-  const visibleScenes = project?.scenes?.length ? project.scenes : starterScenes;
-  const runtimeError = project?.last_error ?? "";
-  const combinedError = uiError || runtimeError;
-  const isAnyLoading = isGenerating || isEditing || isUndoing || runningPhase !== null;
-  const projectStatus = project?.status ?? "idle";
-
-  // Determine which cinematic view to show
-  const viewState = useMemo(() => {
-    if (isGenerating || projectStatus === "running" || runningPhase !== null) return "running";
-    if (projectStatus === "completed" || (projectStatus === "idle" && project?.artifacts?.final_video)) return "completed";
-    return "idle";
-  }, [isGenerating, projectStatus, runningPhase, project]);
-
-  useEffect(() => {
-    if (projectStatus === "completed" || projectStatus === "failed") {
-        setIsGenerating(false);
-    }
-  }, [projectStatus]);
-
-
-  // Helper Renders
-  const renderTerminal = () => (
-    <article className="glass-panel agent-terminal">
-      <div className="terminal-header">
-        <div>
-          <p className="micro-label">Activity</p>
-          <h3>Agent Output Logs</h3>
-        </div>
-        {viewState === "running" && <span className="loader loader-lg"></span>}
-      </div>
-      <div className="terminal-feed">
-        {activeEvents.map((ev, i) => (
-          <div className={`event-row ${getEventStyle(ev)}`} key={i}>
-            <div className="event-agent">[{getAgentName(ev.type)}]</div>
-            <div className="event-msg">{ev.note || JSON.stringify(ev)}</div>
-          </div>
-        ))}
-        <div ref={feedEndRef} />
-      </div>
-    </article>
-  );
-
-  return (
-    <main className="shell">
-      <section className="topbar glass-panel">
-        <div className="brand-lockup">
-          <span className="brand-mark" />
-          <div>
-            <h1 className="brand-title">Agentic Shorts Studio</h1>
-          </div>
-        </div>
-        <div>
-          <span className={`status-badge status-${projectStatus}`}>
-            {projectStatus.charAt(0).toUpperCase() + projectStatus.slice(1)}
-          </span>
-        </div>
-      </section>
-
-      {combinedError && (
-        <section className="error-banner">
-          <div>
-            <strong>Pipeline Error</strong>
-            <span>{combinedError}</span>
-          </div>
-        </section>
-      )}
-
-      {/* VIEW: IDLE (Prompt Entry) */}
-      {viewState === "idle" && (
-        <section className="hero view-container">
-          <div className="hero-content">
-            <h2 className="hero-title">Create AI shorts effortlessly.</h2>
-            <p className="hero-text">
-              Provide a prompt and watch specialized agents write the story, generate audio, and render scenes in real-time. Full control with targeted edits and reversible history.
+  if (appState === 'idle') {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6">
+        <div className="max-w-3xl w-full space-y-8">
+          <div className="text-center space-y-4">
+            <div className="flex justify-center mb-6">
+              <div className="bg-indigo-600/20 p-4 rounded-full">
+                <Wand2 className="w-12 h-12 text-indigo-400" />
+              </div>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+              Agentic AI Video Studio
+            </h1>
+            <p className="text-slate-400 text-lg">
+              End-to-End Orchestration: Prompt → Script → Voice → Video
             </p>
           </div>
 
-          <aside className="launch-panel glass-panel">
-            <div className="panel-header">
-              <p className="micro-label">New Project</p>
-              <h3>Launch Film Run</h3>
-            </div>
-            <textarea
-              className="prompt-input"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="e.g. A cyberpunk detective exploring neon-lit alleyways..."
-              disabled={isGenerating}
-            />
-            <div className="launch-actions">
-              <button className="btn btn-primary" onClick={createProject} disabled={!prompt.trim() || isGenerating}>
-                Generate Film
+          <form onSubmit={handleInitialSubmit} className="relative mt-10">
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-2xl blur opacity-20 transition-opacity duration-500"></div>
+            <div className="relative bg-slate-900 border border-slate-800 rounded-2xl p-2 flex flex-col sm:flex-row gap-2 shadow-2xl">
+              <textarea 
+                value={mainPrompt}
+                onChange={(e) => setMainPrompt(e.target.value)}
+                placeholder="Describe your short film... e.g. 'A young astronaut discovers a hidden ocean on Mars'"
+                className="w-full bg-transparent text-slate-200 placeholder-slate-500 p-4 outline-none resize-none h-24 sm:h-auto font-medium"
+                autoFocus
+              />
+              <button 
+                type="submit"
+                disabled={!mainPrompt.trim()}
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors shrink-0"
+              >
+                <Sparkles className="w-5 h-5" />
+                Generate
               </button>
             </div>
-          </aside>
+          </form>
           
-          {recentProjects.length > 0 && (
-            <div className="recent-projects glass-panel">
-              <div className="panel-header" style={{ marginBottom: "16px" }}>
-                <p className="micro-label">History</p>
-                <h3>Recent Projects</h3>
-              </div>
-              <div className="recent-grid">
-                {recentProjects.map(p => (
-                  <div key={p.project_id} className="recent-card" onClick={() => loadProject(p.project_id)}>
-                    <div className="recent-card-header">
-                      <span className="micro-label" style={{ margin: 0 }}>{p.project_id.split('_').pop()}</span>
-                      <span className={`status-badge status-${p.status}`} style={{ transform: "scale(0.8)", transformOrigin: "right" }}>
-                        {p.status}
-                      </span>
-                    </div>
-                    <strong>{p.prompt}</strong>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div className="flex justify-center gap-6 text-sm text-slate-500 font-medium">
+            <span className="flex items-center gap-2"><FileText className="w-4 h-4"/> Multi-Agent Scripting</span>
+            <span className="flex items-center gap-2"><Music className="w-4 h-4"/> AI Voice & Audio</span>
+            <span className="flex items-center gap-2"><Video className="w-4 h-4"/> Auto-Compositing</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col">
+      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-10 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Layers className="w-6 h-6 text-indigo-400" />
+          <h1 className="font-bold text-lg tracking-wide">Agentic Studio</h1>
+        </div>
+        <div className="flex items-center gap-4 text-sm font-medium">
+          {uiError && <span className="text-red-400">Error: {uiError}</span>}
+          <span className="text-slate-400 flex items-center gap-2">
+            <TerminalSquare className="w-4 h-4"/> Pipeline Active
+          </span>
+          {appState === 'generating' && (
+            <span className="bg-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full flex items-center gap-2 border border-indigo-500/30">
+              <RefreshCw className="w-4 h-4 animate-spin" /> Processing {activePhase || '...' }...
+            </span>
           )}
-        </section>
-      )}
-
-      {/* VIEW: RUNNING (Cinematic Progress) */}
-      {viewState === "running" && (
-        <section className="progress-view view-container">
-          <div className="progress-header">
-            <h2>Agents are working...</h2>
-            <p>Phase: {project?.current_phase ? project.current_phase.charAt(0).toUpperCase() + project.current_phase.slice(1) : "Initializing pipeline"}</p>
-          </div>
-          {renderTerminal()}
-        </section>
-      )}
-
-      {/* VIEW: COMPLETED (Workspace / Preview) */}
-      {viewState === "completed" && (
-        <section className="workspace view-container">
-          <div>
-            <article className="glass-panel preview-surface">
-              <div className="panel-header">
-                <p className="micro-label">Preview</p>
-                <h3>{project?.story?.title ?? "Awaiting Title..."}</h3>
-              </div>
-              {project?.story?.provider && (
-                <p style={{marginTop: "-8px", color: "var(--text-soft)", fontSize: "0.92rem"}}>
-                  Story provider: <strong>{project.story.provider}</strong>
-                </p>
-              )}
-
-              {videoUrl ? (
-                <video className="player" controls src={videoUrl} autoPlay loop />
+        </div>
+      </header>
+      <main className="flex-1 p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-screen-2xl mx-auto w-full">
+        
+        <div className="lg:col-span-7 flex flex-col gap-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex flex-col">
+            <div className="aspect-video bg-black relative flex items-center justify-center">
+              {appState === 'generating' || (!videoUrl && appState !== 'failed') ? (
+                <div className="text-center space-y-4">
+                  <RefreshCw className="w-12 h-12 text-indigo-500 animate-spin mx-auto" />
+                  <p className="text-slate-400 font-medium">Rendering Output...</p>
+                </div>
+              ) : videoUrl ? (
+                <video 
+                  ref={videoRef}
+                  src={videoUrl} 
+                  controls 
+                  autoPlay
+                  className="w-full h-full object-contain"
+                />
               ) : (
-                <div className="empty-player">
-                  <div>Video file missing or failed to generate.</div>
-                </div>
+                <div className="text-slate-500 text-sm">Video not available</div>
               )}
-
-              <div className="scene-grid">
-                {visibleScenes.map((scene) => (
-                  <article className="scene-card" key={scene.scene_id}>
-                    <span className="scene-index">{scene.scene_id.replace("_", " ")}</span>
-                    <strong>{scene.title}</strong>
-                    <p style={{margin: '4px 0 0', color: 'var(--text-soft)', fontSize: '0.9rem'}}>{scene.mood}</p>
-                    <p style={{margin: '4px 0 0', color: 'var(--text-soft)', fontSize: '0.82rem'}}>
-                      {scene.image_provider ? `Image: ${scene.image_provider}` : "Image pending"}
-                    </p>
-                    {scene.image_status === "failed" && scene.image_error ? (
-                      <p style={{margin: '4px 0 0', color: '#ffb3b3', fontSize: '0.8rem'}}>{scene.image_error}</p>
-                    ) : null}
-                    <span className="scene-time">{scene.duration_sec}s</span>
-                  </article>
-                ))}
-              </div>
-            </article>
+            </div>
             
-            <div style={{marginTop: '24px'}}>
-              {renderTerminal()}
+            <div className="p-4 border-t border-slate-800 flex items-center justify-between bg-slate-900">
+              <div>
+                <h3 className="font-bold text-white">Final Output</h3>
+                <p className="text-sm text-slate-400">Current View: {currentVersionId || 'Pending'}</p>
+              </div>
+              {videoUrl && (
+                <a 
+                  href={videoUrl}
+                  download
+                  target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-700"
+                >
+                  <Download className="w-4 h-4" /> Download MP4
+                </a>
+              )}
             </div>
           </div>
 
-          <aside className="workspace-rail">
-            <div className="glass-panel control-panel">
-              <div className="panel-header">
-                <p className="micro-label">Revision Agent</p>
-                <h3>Targeted Edit</h3>
-              </div>
-              <input
-                className="edit-input"
-                value={editCommand}
-                onChange={(e) => setEditCommand(e.target.value)}
-                placeholder="e.g. Change mood to suspenseful"
-                disabled={isAnyLoading || !project}
+          <div className="bg-slate-900 border border-indigo-900/50 rounded-2xl p-5 shadow-xl flex-1 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+              <Wand2 className="w-32 h-32 text-indigo-500" />
+            </div>
+            
+            <h2 className="text-lg font-bold flex items-center gap-2 text-indigo-300 mb-1">
+              <MessageSquare className="w-5 h-5" /> Edit Agent
+            </h2>
+            <p className="text-sm text-slate-400 mb-4">
+              Describe changes in natural language. The agent will detect the target and rebuild accordingly.
+            </p>
+
+            <form onSubmit={handleEditSubmit} className="flex flex-col gap-3">
+              <textarea 
+                value={editPrompt}
+                onChange={(e) => setEditPrompt(e.target.value)}
+                disabled={appState === 'generating'}
+                placeholder='e.g., "Change the narrator voice to be deeper", "Make the final scene darker", "Add dramatic background music"'
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-slate-200 placeholder-slate-600 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none resize-none h-28 disabled:opacity-50"
               />
-              <div className="button-group">
-                <button className="btn btn-primary" onClick={submitEdit} disabled={isAnyLoading || !project || !editCommand.trim()}>
-                  {isEditing ? <><span className="loader"></span></> : "Apply"}
-                </button>
-                <button className="btn btn-secondary" onClick={() => undo()} disabled={isAnyLoading || !project || versionCards.length <= 1}>
-                  {isUndoing ? <span className="loader"></span> : "Undo"}
+              <div className="flex justify-between items-center">
+                 <div className="text-xs text-slate-500 flex items-center gap-1">
+                    <FileJson className="w-3 h-3"/> JSON Schema synced
+                 </div>
+                <button 
+                  type="submit"
+                  disabled={!editPrompt.trim() || appState === 'generating'}
+                  className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                >
+                  <Send className="w-4 h-4" /> Execute Edit
                 </button>
               </div>
-            </div>
+            </form>
+          </div>
+        </div>
 
-            <div className="glass-panel control-panel">
-              <div className="panel-header">
-                <p className="micro-label">Pipeline Control</p>
-                <h3>Rerun Phase</h3>
-              </div>
-              <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-                {phases.map((phase) => (
-                  <button 
-                    key={phase} 
-                    className="btn btn-secondary" 
-                    onClick={() => rerunPhase(phase)} 
-                    disabled={isAnyLoading || !project}
-                    style={{justifyContent: 'flex-start'}}
-                  >
-                    {runningPhase === phase ? <span className="loader"></span> : null}
-                    {phase.charAt(0).toUpperCase() + phase.slice(1)} Phase
-                  </button>
-                ))}
-              </div>
-            </div>
+        <div className="lg:col-span-5 flex flex-col gap-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col">
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <TerminalSquare className="w-5 h-5 text-slate-400" /> Pipeline Orchestrator
+            </h2>
             
-            <article className="glass-panel control-panel">
-              <div className="panel-header">
-                <p className="micro-label">Artifacts</p>
-                <h3>Files</h3>
-              </div>
-              <div className="artifact-grid">
-                <div className={`artifact-item ${project?.artifacts?.story_json ? 'ready' : ''}`}>
-                  <span>Story JSON</span>
-                  <strong>{project?.artifacts?.story_json ? "Ready" : "Pending"}</strong>
-                </div>
-                <div className={`artifact-item ${project?.artifacts?.final_audio ? 'ready' : ''}`}>
-                  <span>Audio Track</span>
-                  <strong>{project?.artifacts?.final_audio ? (project?.audio?.providers_used?.join(", ") || "Ready") : "Pending"}</strong>
-                </div>
-                <div className={`artifact-item ${project?.artifacts?.subtitle_file ? 'ready' : ''}`}>
-                  <span>Subtitles</span>
-                  <strong>{project?.artifacts?.subtitle_file ? "Ready" : "Pending"}</strong>
-                </div>
-                <div className={`artifact-item ${project?.artifacts?.final_video ? 'ready' : ''}`}>
-                  <span>Final MP4</span>
-                  <strong>{project?.artifacts?.final_video ? (project?.video?.image_providers?.join(", ") || "Ready") : "Pending"}</strong>
-                </div>
-              </div>
-            </article>
+            <div className="space-y-4 overflow-y-auto custom-scrollbar flex-1 pr-2">
+              {PHASES.map((phase) => {
+                const Icon = phase.icon;
+                const progValue = progress[phase.id] || 0;
+                const isComplete = progValue === 100;
+                const isActive = activePhase === phase.id;
+                const phaseOutput = phaseOutputs[phase.id];
 
-            <article className="glass-panel control-panel" style={{marginTop: '24px'}}>
-              <div className="panel-header">
-                <p className="micro-label">Versioning</p>
-                <h3>History</h3>
-              </div>
-              <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-                {versionCards.length ? versionCards.map((version) => (
-                  <div key={version.version_id} className="artifact-item ready" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px'}}>
-                    <div>
-                      <span>{version.version_id}</span>
-                      <strong>{version.changed_phase}</strong>
-                      <p style={{margin: '4px 0 0', color: 'var(--text-soft)', fontSize: '0.8rem'}}>
-                        {version.trigger}
-                      </p>
+                return (
+                  <div key={phase.id} className={`p-4 rounded-xl border ${isActive ? 'bg-indigo-950/30 border-indigo-500/50' : 'bg-slate-950 border-slate-800'} transition-all`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${isComplete ? 'bg-green-500/20 text-green-400' : isActive ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-500'}`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-sm">{phase.title}</h3>
+                          <p className="text-xs text-slate-500">{phase.member}</p>
+                        </div>
+                      </div>
+                      
+                      {appState === 'completed' && (
+                         <button 
+                            onClick={() => handleRerunPhase(phase.id)}
+                            className="text-xs flex items-center gap-1 text-slate-400 hover:text-indigo-400 bg-slate-900 hover:bg-slate-800 px-2 py-1 rounded border border-slate-700 transition-colors"
+                         >
+                            <RefreshCw className="w-3 h-3" /> Re-run
+                         </button>
+                      )}
                     </div>
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => undo(version.version_id)}
-                      disabled={isAnyLoading || !project || project?.current_version === version.version_id}
-                    >
-                      {project?.current_version === version.version_id ? "Current" : "Restore"}
-                    </button>
+                    
+                    <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden flex">
+                      <div 
+                        className={`h-full transition-all duration-300 ease-out ${isComplete ? 'bg-green-500' : 'bg-indigo-500'} ${isActive && !isComplete ? 'animate-pulse' : ''}`}
+                        style={{ width: `${progValue}%` }}
+                      ></div>
+                    </div>
+                    
+                    <div className="flex justify-between text-xs mt-2 text-slate-500">
+                      <span>{isActive ? 'Processing...' : isComplete ? 'Complete' : 'Pending'}</span>
+                      <span>{progValue}%</span>
+                    </div>
+
+                    {progValue > 0 && phaseOutput && (
+                      <div className="mt-4 bg-black/40 rounded-lg border border-slate-800 p-3 overflow-hidden">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-indigo-400 text-xs font-medium">
+                            <phaseOutput.icon className="w-3.5 h-3.5" />
+                            {phaseOutput.title}
+                          </div>
+                          <pre className="text-[11px] text-slate-400 font-mono whitespace-pre-wrap leading-relaxed bg-slate-900/50 p-2 rounded border border-slate-800">
+                            {phaseOutput.data}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )) : (
-                  <div className="artifact-item">
-                    <span>No saved versions yet.</span>
-                  </div>
-                )}
-              </div>
-            </article>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl max-h-[300px] flex flex-col">
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <History className="w-5 h-5 text-slate-400" /> Version History
+            </h2>
             
-          </aside>
-        </section>
-      )}
-    </main>
+            {versions.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center text-slate-600 text-sm italic">
+                Awaiting first generation...
+              </div>
+            ) : (
+              <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar">
+                {versions.map((version) => {
+                  const isCurrent = version.id === currentVersionId;
+
+                  return (
+                    <div 
+                      key={version.id} 
+                      className={`p-3 rounded-xl border flex items-center justify-between transition-all ${isCurrent ? 'bg-indigo-900/20 border-indigo-500/50' : 'bg-slate-950 border-slate-800 hover:border-slate-700'}`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-sm font-bold ${isCurrent ? 'text-indigo-400' : 'text-slate-300'}`}>
+                            {version.id}
+                          </span>
+                          {isCurrent && <span className="bg-indigo-500 text-white text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Active</span>}
+                        </div>
+                        <p className="text-xs text-slate-400 truncate max-w-[200px]" title={version.trigger}>
+                          {version.trigger}
+                        </p>
+                        <p className="text-[10px] text-slate-500 mt-1">{version.timestamp}</p>
+                      </div>
+                      
+                      {!isCurrent && appState === 'completed' && (
+                        <button 
+                          onClick={() => handleRevert(version.id)}
+                          className="flex flex-col items-center justify-center p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+                          title="Revert to this state"
+                        >
+                          <Undo2 className="w-4 h-4" />
+                          <span className="text-[10px] mt-1">Revert</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+        </div>
+      </main>
+    </div>
   );
 }

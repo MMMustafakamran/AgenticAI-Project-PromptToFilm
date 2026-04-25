@@ -9,17 +9,22 @@ from shared.schemas.project_state import DialogueTrack, ProjectState, TimingMani
 from shared.utils.paths import OUTPUTS_ROOT
 
 
+from collections.abc import Callable
+
 class AudioAgent:
     def __init__(self) -> None:
         self.tts = TTSGenerator()
 
-    def run(self, state: ProjectState) -> ProjectState:
+    def run(self, state: ProjectState, progress_cb: Callable[[int, str], None] | None = None) -> ProjectState:
         project_dir = OUTPUTS_ROOT / state.project_id / "audio"
         project_dir.mkdir(parents=True, exist_ok=True)
         dialogue_tracks: list[DialogueTrack] = []
         timing_manifest: list[TimingManifestEntry] = []
         current_ms = 0
         providers_used: list[str] = []
+        
+        total_lines = sum(len(scene.dialogue) for scene in state.scenes)
+        lines_processed = 0
 
         for scene in state.scenes:
             scene_start_ms = current_ms
@@ -34,6 +39,11 @@ class AudioAgent:
                     voice_seed=(line_index + 1),
                     preferred_voice_name=character.voice_name,
                 )
+                lines_processed += 1
+                if progress_cb and total_lines > 0:
+                    prog = int((lines_processed / total_lines) * 80)
+                    progress_cb(prog, f"Synthesized audio for {character.name}")
+
                 character.voice_name = character.voice_name or voice_name
                 if provider not in providers_used:
                     providers_used.append(provider)
@@ -67,12 +77,15 @@ class AudioAgent:
 
         bgm_duration = max(20, int(max((current_ms / 1000), sum(scene.duration_sec for scene in state.scenes))))
         bgm_track_path = project_dir / "bgm.wav"
+        if progress_cb: progress_cb(85, "Generating background music...")
         bgm_track = create_bgm_track(state.scenes[0].mood if state.scenes else "calm", bgm_duration, bgm_track_path)
+        if progress_cb: progress_cb(95, "Stitching final audio mix...")
         final_audio = stitch_audio(
             timing_manifest=timing_manifest,
             bgm_track=bgm_track,
             output_path=project_dir / "final_audio.wav",
         )
+        if progress_cb: progress_cb(100, "Audio generation complete")
 
         state.audio.dialogue_tracks = dialogue_tracks
         state.audio.timing_manifest = timing_manifest

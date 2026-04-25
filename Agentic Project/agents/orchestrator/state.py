@@ -21,3 +21,7 @@ class EventBroker:
     def unsubscribe(self, project_id: str, queue: asyncio.Queue[dict[str, Any]]) -> None:
         if queue in self._queues.get(project_id, []):
             self._queues[project_id].remove(queue)
+
+    def publish_sync(self, project_id: str, event: dict[str, Any]) -> None:
+        for queue in self._queues.get(project_id, []):
+            queue.put_nowait(event)
