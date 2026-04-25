@@ -15,17 +15,18 @@ class StoryAgent:
 
     def run(self, state: ProjectState) -> ProjectState:
         prompt = enforce_story_constraints(state.prompt)
-        payload = self.generator.generate_story_payload(prompt)
+        payload, provider = self.generator.generate_story_payload(prompt)
         try:
-            self._apply_payload(state, payload)
+            self._apply_payload(state, payload, provider)
         except Exception as exc:
             LOGGER.warning("Story payload validation failed, using deterministic fallback: %s", exc)
             fallback_payload = self.generator.fallback_story_payload(prompt)
-            self._apply_payload(state, fallback_payload)
+            self._apply_payload(state, fallback_payload, "fallback")
         return state
 
-    def _apply_payload(self, state: ProjectState, payload: dict) -> None:
+    def _apply_payload(self, state: ProjectState, payload: dict, provider: str) -> None:
         state.story = StoryState.model_validate(payload["story"])
+        state.story.provider = provider
         state.characters = [
             CharacterState(
                 character_id=f"char_{index + 1}",
@@ -33,6 +34,7 @@ class StoryAgent:
                 role=character["role"],
                 voice_style=character["voice_style"],
                 visual_description=character["visual_description"],
+                voice_name=character.get("voice_name"),
             )
             for index, character in enumerate(payload["characters"])
         ]

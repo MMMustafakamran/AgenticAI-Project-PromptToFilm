@@ -23,13 +23,13 @@ class StoryGenerator:
             "gemini-2.5-flash-lite,gemini-2.0-flash,gemini-2.0-flash-lite",
         )
 
-    def generate_story_payload(self, prompt: str) -> dict:
+    def generate_story_payload(self, prompt: str) -> tuple[dict, str]:
         if self.gemini_key:
             for model_name in self._candidate_models():
                 cloud_payload = self._generate_with_gemini(prompt, model_name)
                 if cloud_payload:
-                    return cloud_payload
-        return self.fallback_story_payload(prompt)
+                    return cloud_payload, model_name
+        return self.fallback_story_payload(prompt), "fallback"
 
     def fallback_story_payload(self, prompt: str) -> dict:
         return self._generate_fallback(prompt)
@@ -53,28 +53,30 @@ class StoryGenerator:
             "Each scene must include title, duration_sec, narration, visual_prompt, mood, subtitle_lines, dialogue. "
             "Each dialogue item must include character_name, text, emotion."
         )
-        body = {
-            "contents": [
-                {
-                    "parts": [
-                        {
-                            "text": f"{instruction}\n\nUser prompt: {prompt}",
-                        }
-                    ]
-                }
-            ],
-            "generationConfig": {"temperature": 0.8, "response_mime_type": "application/json"},
-        }
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.gemini_key}"
-        for attempt in range(3):
+        validation_feedback = ""
+        for attempt in range(4):
             try:
+                request_text = f"{instruction}\n\nUser prompt: {prompt}"
+                if validation_feedback:
+                    request_text += (
+                        "\n\nYour previous response did not match the schema. "
+                        f"Return corrected JSON only. Validation issue: {validation_feedback}"
+                    )
+                body = {
+                    "contents": [{"parts": [{"text": request_text}]}],
+                    "generationConfig": {"temperature": 0.8, "response_mime_type": "application/json"},
+                }
                 response = requests.post(url, json=body, timeout=(8, 40))
                 response.raise_for_status()
                 data = response.json()
                 content = data["candidates"][0]["content"]["parts"][0]["text"]
+                payload = json.loads(content)
+                self._validate_payload_shape(payload)
                 LOGGER.info("Gemini story generation succeeded with model %s", model_name)
-                return json.loads(content)
+                return payload
             except Exception as exc:  # pragma: no cover - network failure fallback
+                validation_feedback = str(exc)
                 LOGGER.warning(
                     "Gemini story generation failed with model %s on attempt %s: %s",
                     model_name,
@@ -83,6 +85,16 @@ class StoryGenerator:
                 )
                 time.sleep(1.5 * (attempt + 1))
         return None
+
+    def _validate_payload_shape(self, payload: dict) -> None:
+        if not isinstance(payload, dict):
+            raise ValueError("Story payload must be a JSON object.")
+        if not isinstance(payload.get("story"), dict):
+            raise ValueError("Field 'story' must be an object.")
+        if not isinstance(payload.get("characters"), list) or not payload["characters"]:
+            raise ValueError("Field 'characters' must be a non-empty list.")
+        if not isinstance(payload.get("scenes"), list) or len(payload["scenes"]) != 2:
+            raise ValueError("Field 'scenes' must contain exactly 2 scenes.")
 
     def _generate_fallback(self, prompt: str) -> dict:
         subject = shorten(prompt, width=80, placeholder="...")

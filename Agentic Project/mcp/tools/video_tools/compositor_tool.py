@@ -5,6 +5,19 @@ from pathlib import Path
 from shared.schemas.project_state import ProjectState
 
 
+def _scene_duration_sec(state: ProjectState, scene_id: str, fallback_duration: int) -> float:
+    scene = next((item for item in state.scenes if item.scene_id == scene_id), None)
+    if scene and scene.audio_start_ms is not None and scene.audio_end_ms is not None and scene.audio_end_ms > scene.audio_start_ms:
+        return max(1.0, (scene.audio_end_ms - scene.audio_start_ms) / 1000)
+
+    lines = [entry for entry in state.audio.timing_manifest if entry.scene_id == scene_id]
+    if not lines:
+        return float(fallback_duration)
+    start_ms = min(entry.start_ms for entry in lines)
+    end_ms = max(entry.end_ms for entry in lines)
+    return max(1.0, (end_ms - start_ms) / 1000)
+
+
 def compose_video(state: ProjectState, output_path: Path) -> str:
     from moviepy import AudioFileClip, CompositeVideoClip, ImageClip, TextClip, concatenate_videoclips
 
@@ -12,13 +25,14 @@ def compose_video(state: ProjectState, output_path: Path) -> str:
     clips = []
 
     for scene in state.scenes:
+        scene_duration = _scene_duration_sec(state, scene.scene_id, scene.duration_sec)
         image_clip = (
             ImageClip(scene.image_path)
-            .with_duration(scene.duration_sec)
+            .with_duration(scene_duration)
             .resized(height=720)
             .with_position("center")
         )
-        animated = image_clip.resized(lambda t: 1.0 + (0.05 * (t / max(scene.duration_sec, 1))))
+        animated = image_clip.resized(lambda t: 1.0 + (0.05 * (t / max(scene_duration, 1))))
         overlays = [animated]
         if state.video.subtitles_enabled:
             lines = [entry for entry in state.audio.timing_manifest if entry.scene_id == scene.scene_id]
@@ -34,13 +48,14 @@ def compose_video(state: ProjectState, output_path: Path) -> str:
                             size=(1100, None),
                             method="caption",
                         )
-                        .with_duration(scene.duration_sec)
+                        .with_duration(scene_duration)
                         .with_position(("center", 600))
                     )
                     overlays.append(subtitle_clip)
                 except Exception:
                     pass
-        scene_clip = CompositeVideoClip(overlays, size=(1280, 720)).with_duration(scene.duration_sec)
+        scene_clip = CompositeVideoClip(overlays, size=(1280, 720)).with_duration(scene_duration)
+        scene.clip_path = str(output_path.parent / f"{scene.scene_id}.mp4")
         clips.append(scene_clip)
 
     final = concatenate_videoclips(clips, method="compose")

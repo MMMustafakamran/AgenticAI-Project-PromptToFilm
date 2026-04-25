@@ -126,23 +126,46 @@ class WorkflowService:
 
     def _invalidate_downstream(self, state, phase: str) -> None:
         if phase == "story":
+            for scene in state.scenes:
+                scene.audio_start_ms = None
+                scene.audio_end_ms = None
+                scene.image_path = None
+                scene.image_provider = None
+                scene.image_status = "pending"
+                scene.image_error = None
+                scene.clip_path = None
+            for character in state.characters:
+                character.voice_name = None
             state.audio.dialogue_tracks = []
             state.audio.timing_manifest = []
             state.audio.bgm_track = None
             state.audio.final_audio_path = None
+            state.audio.provider = "pending"
+            state.audio.providers_used = []
             state.video.scene_images = []
             state.video.scene_clips = []
             state.video.subtitle_file = None
             state.video.final_video_path = None
+            state.video.image_provider = "pending"
+            state.video.image_providers = []
             state.artifacts.timing_manifest_json = None
             state.artifacts.final_audio = None
             state.artifacts.subtitle_file = None
             state.artifacts.final_video = None
             state.artifacts.scene_images = []
         elif phase == "audio":
+            for scene in state.scenes:
+                scene.audio_start_ms = None
+                scene.audio_end_ms = None
+                scene.clip_path = None
             state.video.scene_images = []
             state.video.scene_clips = []
             state.video.subtitle_file = None
             state.video.final_video_path = None
+            state.video.image_provider = "pending"
+            state.video.image_providers = []
             state.artifacts.final_video = None
             state.artifacts.subtitle_file = None
+        elif phase == "video":
+            for scene in state.scenes:
+                scene.clip_path = None

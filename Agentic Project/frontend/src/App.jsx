@@ -345,6 +345,11 @@ export default function App() {
                 <p className="micro-label">Preview</p>
                 <h3>{project?.story?.title ?? "Awaiting Title..."}</h3>
               </div>
+              {project?.story?.provider && (
+                <p style={{marginTop: "-8px", color: "var(--text-soft)", fontSize: "0.92rem"}}>
+                  Story provider: <strong>{project.story.provider}</strong>
+                </p>
+              )}
 
               {videoUrl ? (
                 <video className="player" controls src={videoUrl} autoPlay loop />
@@ -360,6 +365,12 @@ export default function App() {
                     <span className="scene-index">{scene.scene_id.replace("_", " ")}</span>
                     <strong>{scene.title}</strong>
                     <p style={{margin: '4px 0 0', color: 'var(--text-soft)', fontSize: '0.9rem'}}>{scene.mood}</p>
+                    <p style={{margin: '4px 0 0', color: 'var(--text-soft)', fontSize: '0.82rem'}}>
+                      {scene.image_provider ? `Image: ${scene.image_provider}` : "Image pending"}
+                    </p>
+                    {scene.image_status === "failed" && scene.image_error ? (
+                      <p style={{margin: '4px 0 0', color: '#ffb3b3', fontSize: '0.8rem'}}>{scene.image_error}</p>
+                    ) : null}
                     <span className="scene-time">{scene.duration_sec}s</span>
                   </article>
                 ))}
@@ -427,7 +438,7 @@ export default function App() {
                 </div>
                 <div className={`artifact-item ${project?.artifacts?.final_audio ? 'ready' : ''}`}>
                   <span>Audio Track</span>
-                  <strong>{project?.artifacts?.final_audio ? "Ready" : "Pending"}</strong>
+                  <strong>{project?.artifacts?.final_audio ? (project?.audio?.providers_used?.join(", ") || "Ready") : "Pending"}</strong>
                 </div>
                 <div className={`artifact-item ${project?.artifacts?.subtitle_file ? 'ready' : ''}`}>
                   <span>Subtitles</span>
@@ -435,8 +446,39 @@ export default function App() {
                 </div>
                 <div className={`artifact-item ${project?.artifacts?.final_video ? 'ready' : ''}`}>
                   <span>Final MP4</span>
-                  <strong>{project?.artifacts?.final_video ? "Ready" : "Pending"}</strong>
+                  <strong>{project?.artifacts?.final_video ? (project?.video?.image_providers?.join(", ") || "Ready") : "Pending"}</strong>
                 </div>
+              </div>
+            </article>
+
+            <article className="glass-panel control-panel" style={{marginTop: '24px'}}>
+              <div className="panel-header">
+                <p className="micro-label">Versioning</p>
+                <h3>History</h3>
+              </div>
+              <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                {versionCards.length ? versionCards.map((version) => (
+                  <div key={version.version_id} className="artifact-item ready" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px'}}>
+                    <div>
+                      <span>{version.version_id}</span>
+                      <strong>{version.changed_phase}</strong>
+                      <p style={{margin: '4px 0 0', color: 'var(--text-soft)', fontSize: '0.8rem'}}>
+                        {version.trigger}
+                      </p>
+                    </div>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => undo(version.version_id)}
+                      disabled={isAnyLoading || !project || project?.current_version === version.version_id}
+                    >
+                      {project?.current_version === version.version_id ? "Current" : "Restore"}
+                    </button>
+                  </div>
+                )) : (
+                  <div className="artifact-item">
+                    <span>No saved versions yet.</span>
+                  </div>
+                )}
               </div>
             </article>
             

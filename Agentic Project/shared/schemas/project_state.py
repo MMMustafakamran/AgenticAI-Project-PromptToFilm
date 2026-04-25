@@ -24,6 +24,11 @@ class SceneState(BaseModel):
     mood: str
     subtitle_lines: list[str]
     image_path: str | None = None
+    image_provider: str | None = None
+    image_status: Literal["pending", "generated", "failed"] = "pending"
+    image_error: str | None = None
+    audio_start_ms: int | None = None
+    audio_end_ms: int | None = None
     clip_path: str | None = None
 
 
@@ -33,6 +38,7 @@ class CharacterState(BaseModel):
     role: str
     voice_style: str
     visual_description: str
+    voice_name: str | None = None
 
 
 class DialogueTrack(BaseModel):
@@ -42,6 +48,8 @@ class DialogueTrack(BaseModel):
     text: str
     file_path: str
     duration_ms: int
+    provider: str = "unknown"
+    voice_name: str | None = None
 
 
 class TimingManifestEntry(BaseModel):
@@ -51,6 +59,8 @@ class TimingManifestEntry(BaseModel):
     end_ms: int
     text: str
     character_name: str
+    provider: str = "unknown"
+    voice_name: str | None = None
 
 
 class AudioState(BaseModel):
@@ -58,7 +68,8 @@ class AudioState(BaseModel):
     bgm_track: str | None = None
     timing_manifest: list[TimingManifestEntry] = Field(default_factory=list)
     final_audio_path: str | None = None
-    provider: str = "synthetic"
+    provider: str = "pending"
+    providers_used: list[str] = Field(default_factory=list)
 
 
 class VideoState(BaseModel):
@@ -67,13 +78,15 @@ class VideoState(BaseModel):
     subtitle_file: str | None = None
     final_video_path: str | None = None
     subtitles_enabled: bool = True
-    image_provider: str = "placeholder"
+    image_provider: str = "pending"
+    image_providers: list[str] = Field(default_factory=list)
 
 
 class EditRecord(BaseModel):
     command: str
     target: Literal["script", "audio", "video_frame", "video"]
     intent: str
+    target_label: str | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -101,6 +114,7 @@ class StoryState(BaseModel):
     logline: str = ""
     tone: str = "hopeful cinematic"
     summary: str = ""
+    provider: str = "fallback"
 
 
 class ProjectState(BaseModel):

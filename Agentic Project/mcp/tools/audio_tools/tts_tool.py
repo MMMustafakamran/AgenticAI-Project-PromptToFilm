@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import asyncio
+import hashlib
+import json
 import math
 import struct
+import threading
 import wave
 from pathlib import Path
 
@@ -13,6 +17,18 @@ from shared.utils.paths import env
 
 
 LOGGER = get_logger("tts-generator")
+
+EDGE_SOFT_VOICES = [
+    "en-US-JennyNeural",
+    "en-GB-SoniaNeural",
+    "en-AU-NatashaNeural",
+]
+EDGE_BOLD_VOICES = [
+    "en-US-GuyNeural",
+    "en-GB-RyanNeural",
+    "en-AU-WilliamNeural",
+]
+EDGE_DEFAULT_VOICES = EDGE_SOFT_VOICES + EDGE_BOLD_VOICES
 
 
 def _write_wave(path: Path, duration_sec: float, frequency: int = 440, volume: float = 0.22, sample_rate: int = 22050) -> int:
@@ -27,22 +43,119 @@ def _write_wave(path: Path, duration_sec: float, frequency: int = 440, volume: f
     return int(duration_sec * 1000)
 
 
+def _run_coro_in_thread(coro) -> None:
+    error: list[BaseException] = []
+
+    def runner() -> None:
+        loop = asyncio.new_event_loop()
+        try:
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(coro)
+        except BaseException as exc:  # pragma: no cover - defensive
+            error.append(exc)
+        finally:
+            loop.close()
+
+    thread = threading.Thread(target=runner, daemon=True)
+    thread.start()
+    thread.join()
+    if error:
+        raise error[0]
+
+
+def _audio_duration_ms(path: Path) -> int:
+    from moviepy import AudioFileClip
+
+    clip = AudioFileClip(str(path))
+    try:
+        return max(1, int(clip.duration * 1000))
+    finally:
+        clip.close()
+
+
 class TTSGenerator:
     def __init__(self) -> None:
         self.elevenlabs_key = env("ELEVENLABS_API_KEY")
         self.voice_id = env("ELEVENLABS_VOICE_ID", "JBFqnCBsd6RMkjVDRZzb")
+        self.default_voice = env("EDGE_TTS_DEFAULT_VOICE", "en-US-JennyNeural")
+        self.voice_map = self._load_voice_map()
 
-    def generate(self, text: str, voice_style: str, output_base: Path, voice_seed: int) -> tuple[str, str, int]:
-        if self.elevenlabs_key:
-            result = self._generate_with_elevenlabs(text, output_base.with_suffix(".mp3"))
-            if result:
-                return "elevenlabs", str(output_base.with_suffix(".mp3")), result
-        duration = max(1.6, min(5.5, len(text.split()) * 0.42))
-        output_path = output_base.with_suffix(".wav")
-        ms = _write_wave(output_path, duration_sec=duration, frequency=260 + voice_seed * 40)
-        return "synthetic", str(output_path), ms
+    def generate(
+        self,
+        text: str,
+        voice_style: str,
+        character_name: str,
+        output_base: Path,
+        voice_seed: int,
+        preferred_voice_name: str | None = None,
+    ) -> tuple[str, str, int, str]:
+        voice_name = preferred_voice_name or self.resolve_voice_name(character_name, voice_style, voice_seed)
+        edge_path = output_base.with_suffix(".mp3")
+        edge_result = self._generate_with_edge_tts(text, edge_path, voice_name)
+        if edge_result is not None:
+            return "edge-tts", str(edge_path), edge_result, voice_name
+
+        elevenlabs_path = output_base.with_suffix(".mp3")
+        elevenlabs_result = self._generate_with_elevenlabs(text, elevenlabs_path)
+        if elevenlabs_result is not None:
+            return "elevenlabs", str(elevenlabs_path), elevenlabs_result, voice_name
+
+        raise RuntimeError(f"TTS generation failed for character '{character_name}' on both Edge TTS and ElevenLabs.")
+
+    def resolve_voice_name(self, character_name: str, voice_style: str, voice_seed: int) -> str:
+        if character_name in self.voice_map:
+            return self.voice_map[character_name]
+        if voice_style in self.voice_map:
+            return self.voice_map[voice_style]
+
+        style_key = voice_style.lower()
+        if any(keyword in style_key for keyword in ("soft", "calm", "warm", "gentle", "reflective", "reassuring")):
+            pool = EDGE_SOFT_VOICES
+        elif any(keyword in style_key for keyword in ("bold", "strong", "grounded", "energetic", "confident")):
+            pool = EDGE_BOLD_VOICES
+        else:
+            pool = EDGE_DEFAULT_VOICES
+
+        seed_material = f"{character_name}:{voice_style}:{voice_seed}".encode("utf-8")
+        index = int(hashlib.sha256(seed_material).hexdigest(), 16) % len(pool)
+        return pool[index] if pool else self.default_voice
+
+    def _load_voice_map(self) -> dict[str, str]:
+        raw = env("EDGE_TTS_VOICE_MAP")
+        if not raw:
+            return {}
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            LOGGER.warning("EDGE_TTS_VOICE_MAP is not valid JSON; ignoring it.")
+            return {}
+        if not isinstance(payload, dict):
+            LOGGER.warning("EDGE_TTS_VOICE_MAP must be a JSON object; ignoring it.")
+            return {}
+        return {str(key): str(value) for key, value in payload.items()}
+
+    def _generate_with_edge_tts(self, text: str, output_path: Path, voice_name: str) -> int | None:
+        try:
+            import edge_tts
+        except ImportError:
+            LOGGER.warning("edge-tts is not installed; skipping Edge TTS provider.")
+            return None
+
+        try:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            communicate = edge_tts.Communicate(text=text, voice=voice_name)
+            _run_coro_in_thread(communicate.save(str(output_path)))
+            duration_ms = _audio_duration_ms(output_path)
+            LOGGER.info("Edge TTS succeeded with voice %s", voice_name)
+            return duration_ms
+        except Exception as exc:
+            LOGGER.warning("Edge TTS failed for voice %s: %s", voice_name, exc)
+            return None
 
     def _generate_with_elevenlabs(self, text: str, output_path: Path) -> int | None:
+        if not self.elevenlabs_key:
+            return None
+
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{self.voice_id}"
         headers = {
             "xi-api-key": self.elevenlabs_key,
@@ -57,17 +170,18 @@ class TTSGenerator:
         try:
             response = requests.post(url, json=payload, headers=headers, timeout=(8, 60))
             response.raise_for_status()
+            output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_bytes(response.content)
-            estimated_ms = max(1800, len(text.split()) * 450)
+            duration_ms = _audio_duration_ms(output_path)
             LOGGER.info("ElevenLabs TTS succeeded for %s words", len(text.split()))
-            return estimated_ms
+            return duration_ms
         except HTTPError as exc:
             response = exc.response
             details = ""
             if response is not None:
                 try:
                     details = response.text
-                except Exception:
+                except Exception:  # pragma: no cover - defensive
                     details = "<unreadable response body>"
             LOGGER.warning(
                 "ElevenLabs TTS failed with status %s. Response body: %s",
@@ -76,5 +190,5 @@ class TTSGenerator:
             )
             return None
         except Exception as exc:
-            LOGGER.warning("ElevenLabs TTS failed, falling back to synthetic audio: %s", exc)
+            LOGGER.warning("ElevenLabs TTS failed: %s", exc)
             return None
