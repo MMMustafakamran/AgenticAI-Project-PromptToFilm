@@ -1,7 +1,4 @@
-INFO:     Will watch for changes in these directories: ['C:\\Users\\dynamic computer\\Desktop\\FAST\\semester 8\\agentic ai\\project\\Agentic Project']
-INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [15160] using StatReload
-INFO:     Started server process [31264]
+INFO:     Started server process [27152]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-WARNING:  StatReload detected changes in 'backend\app.py'. Reloading...
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)

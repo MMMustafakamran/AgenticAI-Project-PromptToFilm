@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from textwrap import shorten
 
 import requests
@@ -16,15 +17,35 @@ class StoryGenerator:
     def __init__(self) -> None:
         self.gemini_key = env("GEMINI_API_KEY")
         self.gemini_model = env("GEMINI_MODEL", "gemini-2.0-flash")
+        self.gemini_fallback_model = env("GEMINI_FALLBACK_MODEL", "gemini-2.0-flash")
+        self.gemini_fallback_models = env(
+            "GEMINI_FALLBACK_MODELS",
+            "gemini-2.5-flash-lite,gemini-2.0-flash,gemini-2.0-flash-lite",
+        )
 
     def generate_story_payload(self, prompt: str) -> dict:
         if self.gemini_key:
-            cloud_payload = self._generate_with_gemini(prompt)
-            if cloud_payload:
-                return cloud_payload
+            for model_name in self._candidate_models():
+                cloud_payload = self._generate_with_gemini(prompt, model_name)
+                if cloud_payload:
+                    return cloud_payload
+        return self.fallback_story_payload(prompt)
+
+    def fallback_story_payload(self, prompt: str) -> dict:
         return self._generate_fallback(prompt)
 
-    def _generate_with_gemini(self, prompt: str) -> dict | None:
+    def _candidate_models(self) -> list[str]:
+        csv_models = []
+        if self.gemini_fallback_models:
+            csv_models = [model.strip() for model in self.gemini_fallback_models.split(",") if model.strip()]
+        models = [self.gemini_model, self.gemini_fallback_model, *csv_models]
+        ordered: list[str] = []
+        for model in models:
+            if model and model not in ordered:
+                ordered.append(model)
+        return ordered
+
+    def _generate_with_gemini(self, prompt: str, model_name: str) -> dict | None:
         instruction = (
             "You are generating a 2-scene animated short film plan. "
             "Return only valid JSON with keys story, characters, scenes. "
@@ -44,19 +65,24 @@ class StoryGenerator:
             ],
             "generationConfig": {"temperature": 0.8, "response_mime_type": "application/json"},
         }
-        url = (
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{self.gemini_model}:generateContent?key={self.gemini_key}"
-        )
-        try:
-            response = requests.post(url, json=body, timeout=45)
-            response.raise_for_status()
-            data = response.json()
-            content = data["candidates"][0]["content"]["parts"][0]["text"]
-            return json.loads(content)
-        except Exception as exc:  # pragma: no cover - network failure fallback
-            LOGGER.warning("Gemini story generation failed: %s", exc)
-            return None
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.gemini_key}"
+        for attempt in range(3):
+            try:
+                response = requests.post(url, json=body, timeout=(8, 40))
+                response.raise_for_status()
+                data = response.json()
+                content = data["candidates"][0]["content"]["parts"][0]["text"]
+                LOGGER.info("Gemini story generation succeeded with model %s", model_name)
+                return json.loads(content)
+            except Exception as exc:  # pragma: no cover - network failure fallback
+                LOGGER.warning(
+                    "Gemini story generation failed with model %s on attempt %s: %s",
+                    model_name,
+                    attempt + 1,
+                    exc,
+                )
+                time.sleep(1.5 * (attempt + 1))
+        return None
 
     def _generate_fallback(self, prompt: str) -> dict:
         subject = shorten(prompt, width=80, placeholder="...")

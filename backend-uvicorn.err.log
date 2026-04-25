@@ -1,0 +1,45 @@
+INFO:     Started server process [22116]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-04-26 00:43:00,792 INFO backend.app: Created project proj_ae69fe1be3
+2026-04-26 00:43:09,698 INFO story-generator: Gemini story generation succeeded with model gemini-2.5-flash
+2026-04-26 00:43:09,705 WARNING story-agent: Story payload validation failed, using deterministic fallback: 1 validation error for StoryState
+  Input should be a valid dictionary or instance of StoryState [type=model_type, input_value='Maya, a thoughtful stude...ng a smile to her face.', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.9/v/model_type
+2026-04-26 00:43:10,735 INFO tts-generator: ElevenLabs TTS succeeded for 6 words
+2026-04-26 00:43:11,657 INFO tts-generator: ElevenLabs TTS succeeded for 7 words
+2026-04-26 00:43:12,588 INFO tts-generator: ElevenLabs TTS succeeded for 7 words
+2026-04-26 00:43:13,549 INFO tts-generator: ElevenLabs TTS succeeded for 9 words
+2026-04-26 00:43:31,951 INFO image-generator: Pollinations image generation succeeded with model flux
+2026-04-26 00:43:33,846 INFO image-generator: Pollinations image generation succeeded with model flux
+2026-04-26 00:47:51,580 ERROR asyncio: Exception in callback _ProactorBasePipeTransport._call_connection_lost()
+handle: <Handle _ProactorBasePipeTransport._call_connection_lost()>
+Traceback (most recent call last):
+  File "C:\Users\dynamic computer\AppData\Local\Programs\Python\Python313\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\dynamic computer\AppData\Local\Programs\Python\Python313\Lib\asyncio\proactor_events.py", line 165, in _call_connection_lost
+    self._sock.shutdown(socket.SHUT_RDWR)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+2026-04-26 00:48:49,739 INFO story-generator: Gemini story generation succeeded with model gemini-2.5-flash
+2026-04-26 00:48:49,741 WARNING story-agent: Story payload validation failed, using deterministic fallback: 1 validation error for StoryState
+  Input should be a valid dictionary or instance of StoryState [type=model_type, input_value="Maya, a young Black girl... with the falling rain.", input_type=str]
+    For further information visit https://errors.pydantic.dev/2.9/v/model_type
+2026-04-26 00:48:50,813 INFO tts-generator: ElevenLabs TTS succeeded for 6 words
+2026-04-26 00:48:51,762 INFO tts-generator: ElevenLabs TTS succeeded for 7 words
+2026-04-26 00:48:52,740 INFO tts-generator: ElevenLabs TTS succeeded for 7 words
+2026-04-26 00:48:53,771 INFO tts-generator: ElevenLabs TTS succeeded for 9 words
+2026-04-26 00:49:25,681 INFO image-generator: Pollinations image generation succeeded with model flux
+2026-04-26 00:49:38,086 WARNING image-generator: Pollinations failed: HTTPSConnectionPool(host='image.pollinations.ai', port=443): Read timed out. (read timeout=12)
+2026-04-26 00:51:35,448 ERROR asyncio: Exception in callback _ProactorBasePipeTransport._call_connection_lost()
+handle: <Handle _ProactorBasePipeTransport._call_connection_lost()>
+Traceback (most recent call last):
+  File "C:\Users\dynamic computer\AppData\Local\Programs\Python\Python313\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\dynamic computer\AppData\Local\Programs\Python\Python313\Lib\asyncio\proactor_events.py", line 165, in _call_connection_lost
+    self._sock.shutdown(socket.SHUT_RDWR)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host

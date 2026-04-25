@@ -1,0 +1,24 @@
+INFO:     127.0.0.1:58332 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55868 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54303 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54303 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61607 - "OPTIONS /projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61607 - "POST /projects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62250 - "GET /projects/proj_ae69fe1be3/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52788 - "GET /projects/proj_ae69fe1be3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51291 - "GET /artifacts/proj_ae69fe1be3/video/final_output.mp4 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:49662 - "GET /artifacts/proj_ae69fe1be3/video/final_output.mp4 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:49662 - "GET /artifacts/proj_ae69fe1be3/video/final_output.mp4 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:49662 - "GET /artifacts/proj_ae69fe1be3/video/final_output.mp4 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:58100 - "OPTIONS /projects/proj_ae69fe1be3/edit HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58100 - "POST /projects/proj_ae69fe1be3/edit HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63203 - "GET /artifacts/proj_ae69fe1be3/video/final_output.mp4 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:58100 - "GET /projects/proj_ae69fe1be3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63286 - "GET /artifacts/proj_ae69fe1be3/video/final_output.mp4 HTTP/1.1" 206 Partial Content
+INFO:     127.0.0.1:55386 - "GET /projects/proj_ae69fe1be3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58100 - "GET /projects/proj_ae69fe1be3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55386 - "GET /projects/proj_ae69fe1be3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65069 - "GET /projects/proj_ae69fe1be3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58172 - "GET /projects/proj_ae69fe1be3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50443 - "GET /projects/proj_ae69fe1be3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55386 - "GET /projects/proj_ae69fe1be3 HTTP/1.1" 200 OK

@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from mcp.tools.system_tools.logger_tool import get_logger
 from shared.schemas.project_state import CharacterState, DialogueLine, ProjectState, SceneState, StoryState
 from mcp.tools.llm_tools.text_generator import StoryGenerator
 from agents.story_agent.planner import enforce_story_constraints
+
+
+LOGGER = get_logger("story-agent")
 
 
 class StoryAgent:
@@ -10,7 +14,17 @@ class StoryAgent:
         self.generator = StoryGenerator()
 
     def run(self, state: ProjectState) -> ProjectState:
-        payload = self.generator.generate_story_payload(enforce_story_constraints(state.prompt))
+        prompt = enforce_story_constraints(state.prompt)
+        payload = self.generator.generate_story_payload(prompt)
+        try:
+            self._apply_payload(state, payload)
+        except Exception as exc:
+            LOGGER.warning("Story payload validation failed, using deterministic fallback: %s", exc)
+            fallback_payload = self.generator.fallback_story_payload(prompt)
+            self._apply_payload(state, fallback_payload)
+        return state
+
+    def _apply_payload(self, state: ProjectState, payload: dict) -> None:
         state.story = StoryState.model_validate(payload["story"])
         state.characters = [
             CharacterState(
@@ -48,4 +62,3 @@ class StoryAgent:
                     subtitle_lines=scene["subtitle_lines"],
                 )
             )
-        return state

@@ -30,8 +30,9 @@ class SceneImageGenerator:
     def _try_pollinations(self, prompt: str) -> Image.Image | None:
         url = f"https://image.pollinations.ai/prompt/{quote_plus(prompt)}?model={self.pollinations_model}&width=1280&height=720"
         try:
-            response = requests.get(url, timeout=90)
+            response = requests.get(url, timeout=(6, 12))
             response.raise_for_status()
+            LOGGER.info("Pollinations image generation succeeded with model %s", self.pollinations_model)
             return Image.open(BytesIO(response.content)).convert("RGB")
         except Exception as exc:  # pragma: no cover - network fallback
             LOGGER.warning("Pollinations failed: %s", exc)

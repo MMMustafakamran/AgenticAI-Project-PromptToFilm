@@ -6,8 +6,13 @@ import wave
 from pathlib import Path
 
 import requests
+from requests import HTTPError
 
+from mcp.tools.system_tools.logger_tool import get_logger
 from shared.utils.paths import env
+
+
+LOGGER = get_logger("tts-generator")
 
 
 def _write_wave(path: Path, duration_sec: float, frequency: int = 440, volume: float = 0.22, sample_rate: int = 22050) -> int:
@@ -50,10 +55,26 @@ class TTSGenerator:
             "voice_settings": {"stability": 0.55, "similarity_boost": 0.72},
         }
         try:
-            response = requests.post(url, json=payload, headers=headers, timeout=60)
+            response = requests.post(url, json=payload, headers=headers, timeout=(8, 60))
             response.raise_for_status()
             output_path.write_bytes(response.content)
             estimated_ms = max(1800, len(text.split()) * 450)
+            LOGGER.info("ElevenLabs TTS succeeded for %s words", len(text.split()))
             return estimated_ms
-        except Exception:
+        except HTTPError as exc:
+            response = exc.response
+            details = ""
+            if response is not None:
+                try:
+                    details = response.text
+                except Exception:
+                    details = "<unreadable response body>"
+            LOGGER.warning(
+                "ElevenLabs TTS failed with status %s. Response body: %s",
+                response.status_code if response is not None else "unknown",
+                details,
+            )
+            return None
+        except Exception as exc:
+            LOGGER.warning("ElevenLabs TTS failed, falling back to synthetic audio: %s", exc)
             return None
