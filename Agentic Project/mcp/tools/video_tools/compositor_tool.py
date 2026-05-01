@@ -19,20 +19,29 @@ def _scene_duration_sec(state: ProjectState, scene_id: str, fallback_duration: i
 
 
 def compose_video(state: ProjectState, output_path: Path) -> str:
-    from moviepy import AudioFileClip, CompositeVideoClip, ImageClip, TextClip, concatenate_videoclips
+    from moviepy import AudioFileClip, CompositeVideoClip, ImageClip, VideoFileClip, TextClip, concatenate_videoclips, vfx
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     clips = []
 
     for scene in state.scenes:
         scene_duration = _scene_duration_sec(state, scene.scene_id, scene.duration_sec)
-        image_clip = (
-            ImageClip(scene.image_path)
-            .with_duration(scene_duration)
-            .resized(height=720)
-            .with_position("center")
-        )
-        animated = image_clip.resized(lambda t: 1.0 + (0.05 * (t / max(scene_duration, 1))))
+        
+        if scene.image_path.endswith(".mp4"):
+            video_clip = VideoFileClip(scene.image_path).resized(height=720).with_position("center")
+            if video_clip.duration < scene_duration:
+                animated = video_clip.with_effects([vfx.Loop(duration=scene_duration)])
+            else:
+                animated = video_clip.subclipped(0, scene_duration)
+        else:
+            image_clip = (
+                ImageClip(scene.image_path)
+                .with_duration(scene_duration)
+                .resized(height=720)
+                .with_position("center")
+            )
+            animated = image_clip.resized(lambda t: 1.0 + (0.05 * (t / max(scene_duration, 1))))
+            
         overlays = [animated]
         if state.video.subtitles_enabled:
             lines = [entry for entry in state.audio.timing_manifest if entry.scene_id == scene.scene_id]

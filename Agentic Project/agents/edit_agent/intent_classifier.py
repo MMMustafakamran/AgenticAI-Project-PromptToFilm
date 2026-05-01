@@ -10,54 +10,62 @@ EditTarget = Literal["script", "audio", "video_frame", "video"]
 
 
 def classify_edit(command: str, state: ProjectState) -> tuple[str, EditTarget, dict[str, str | int | bool | None]]:
-    text = command.lower()
-    details: dict[str, str | int | bool | None] = {
-        "scene_id": _extract_scene_id(text),
-        "character_id": _extract_character_id(text, state),
+    import json
+    import requests
+    from shared.utils.paths import env
+
+    groq_api_key = env("GROQ_API")
+    if not groq_api_key:
+        raise RuntimeError("GROQ_API key is not configured in .env")
+
+    context = f"Characters: {[c.name for c in state.characters]}\nScenes: {[s.scene_id for s in state.scenes]}\n"
+    
+    system_prompt = f"""You are an intent classification agent for a video editing pipeline.
+Available targets: "script", "audio", "video_frame", "video".
+Analyze the user's command and determine what they want to change.
+{context}
+
+Output ONLY valid JSON matching this schema exactly:
+{{
+  "intent": "string (e.g. change_voice_tone, adjust_scene_visuals, toggle_subtitles, regenerate_script)",
+  "target": "string (MUST BE one of: script, audio, video_frame, video)",
+  "details": {{
+    "scene_id": "string or null",
+    "character_id": "string or null",
+    "tone": "string or null",
+    "visual_change": "string or null",
+    "subtitles_enabled": "boolean or null",
+    "duration_delta": "integer or null"
+  }}
+}}"""
+
+    headers = {
+        "Authorization": f"Bearer {groq_api_key}",
+        "Content-Type": "application/json"
     }
-
-    if "voice" in text or "music" in text or "audio" in text:
-        details["tone"] = _extract_tone(text)
-        return "change_voice_tone", "audio", details
-    if any(keyword in text for keyword in ("darker", "brighter", "design", "lighting", "visual")):
-        details["visual_change"] = _extract_visual_change(text)
-        return "adjust_scene_visuals", "video_frame", details
-    if "subtitle" in text:
-        details["subtitles_enabled"] = "remove" not in text
-        return "toggle_subtitles", "video", details
-    if "speed" in text or "duration" in text:
-        details["duration_delta"] = -2 if any(word in text for word in ("speed", "faster", "shorter")) else 2
-        return "adjust_scene_duration", "video", details
-    return "regenerate_script", "script", details
-
-
-def _extract_scene_id(text: str) -> str | None:
-    match = re.search(r"scene\s+([12])", text)
-    if not match:
-        return None
-    return f"scene_{match.group(1)}"
-
-
-def _extract_character_id(text: str, state: ProjectState) -> str | None:
-    for character in state.characters:
-        if character.name.lower() in text:
-            return character.character_id
-    return None
-
-
-def _extract_tone(text: str) -> str:
-    if "soft" in text or "gentle" in text:
-        return "soft"
-    if "energetic" in text or "strong" in text or "bold" in text:
-        return "energetic"
-    return "adjusted"
-
-
-def _extract_visual_change(text: str) -> str:
-    if "darker" in text:
-        return "darker"
-    if "brighter" in text:
-        return "brighter"
-    if "design" in text:
-        return "design"
-    return "lighting"
+    
+    payload = {
+        "model": "llama-3.1-8b-instant",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": command}
+        ],
+        "response_format": {"type": "json_object"},
+        "temperature": 0.1
+    }
+    
+    try:
+        response = requests.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers)
+        response.raise_for_status()
+        result = response.json()["choices"][0]["message"]["content"]
+        parsed = json.loads(result)
+        
+        target = parsed.get("target", "script")
+        if target not in ["script", "audio", "video_frame", "video"]:
+            target = "script"
+            
+        return parsed.get("intent", "regenerate_script"), target, parsed.get("details", {})
+    except Exception as exc:
+        print(f"Groq API Error: {exc}")
+        # Fallback if API fails
+        return "regenerate_script", "script", {}

@@ -112,7 +112,12 @@ class WorkflowService:
 
     def _persist_artifacts(self, state) -> None:
         output_dir = OUTPUTS_ROOT / state.project_id
-        write_json(output_dir / "story.json", state.story.model_dump(mode="json"))
+        full_story_payload = {
+            "story": state.story.model_dump(mode="json"),
+            "characters": [char.model_dump(mode="json") for char in state.characters],
+            "scenes": [scene.model_dump(mode="json") for scene in state.scenes]
+        }
+        write_json(output_dir / "story.json", full_story_payload)
         write_json(output_dir / "timing_manifest.json", [entry.model_dump(mode="json") for entry in state.audio.timing_manifest])
         state.artifacts.story_json = str(output_dir / "story.json")
         state.artifacts.timing_manifest_json = str(output_dir / "timing_manifest.json")

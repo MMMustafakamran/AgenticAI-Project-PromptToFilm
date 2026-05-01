@@ -48,6 +48,11 @@ def test_video_agent_generates_artifacts(monkeypatch):
         provider = "pollinations" if "One" in title else "openai"
         return str(output_path), provider
 
+    def fake_generate_video(self, prompt, output_path, title):
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(b"vid")
+        return str(output_path), "kaggle-cogvideo"
+
     def fake_compose_video(current_state, output_path):
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_bytes(b"fake mp4")
@@ -56,6 +61,8 @@ def test_video_agent_generates_artifacts(monkeypatch):
     monkeypatch.setattr("agents.video_agent.agent.compose_video", fake_compose_video)
     monkeypatch.setattr("agents.video_agent.agent.write_subtitles", lambda *args, **kwargs: None)
     monkeypatch.setattr("agents.video_agent.agent.SceneImageGenerator.generate", fake_generate)
+    monkeypatch.setattr("agents.video_agent.agent.SceneImageGenerator.generate_video", fake_generate_video)
+    monkeypatch.setenv("KAGGLE_API_URL", "")
 
     updated = VideoAgent().run(state)
 
@@ -73,6 +80,7 @@ def test_video_agent_raises_when_all_image_providers_fail(monkeypatch):
         raise RuntimeError("all providers failed")
 
     monkeypatch.setattr("agents.video_agent.agent.SceneImageGenerator.generate", fake_generate)
+    monkeypatch.setenv("KAGGLE_API_URL", "")
 
     with pytest.raises(RuntimeError):
         VideoAgent().run(state)

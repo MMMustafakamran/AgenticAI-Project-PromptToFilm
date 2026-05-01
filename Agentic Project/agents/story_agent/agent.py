@@ -19,17 +19,24 @@ class StoryAgent:
         if progress_cb: progress_cb(10, "Applying narrative constraints...")
         prompt = enforce_story_constraints(state.prompt)
         if progress_cb: progress_cb(40, "Calling language model for story generation...")
-        payload, provider = self.generator.generate_story_payload(prompt)
-        try:
-            if progress_cb: progress_cb(80, "Parsing and validating story structure...")
-            self._apply_payload(state, payload, provider)
-            if progress_cb: progress_cb(100, "Story finalized")
-        except Exception as exc:
-            LOGGER.warning("Story payload validation failed, using deterministic fallback: %s", exc)
-            if progress_cb: progress_cb(80, "Validation failed, falling back to deterministic template...")
-            fallback_payload = self.generator.fallback_story_payload(prompt)
-            self._apply_payload(state, fallback_payload, "fallback")
-            if progress_cb: progress_cb(100, "Story finalized with fallback")
+        
+        print("\n[INFO] Sending request to LLM for Script Generation...")
+        for attempt in range(3):
+            try:
+                payload, provider = self.generator.generate_story_payload(prompt)
+                if progress_cb: progress_cb(80, f"Parsing and validating story structure (Attempt {attempt + 1})...")
+                self._apply_payload(state, payload, provider)
+                if progress_cb: progress_cb(100, "Story finalized")
+                print("[SUCCESS] Script Generation Complete!")
+                return state
+            except Exception as exc:
+                print(f"[ERROR] Script Generation Error (Attempt {attempt + 1}): {exc}")
+                LOGGER.warning("Story payload validation failed on attempt %s: %s", attempt + 1, exc)
+                if attempt == 2:
+                    if progress_cb: progress_cb(80, "Validation failed completely.")
+                    raise RuntimeError(f"Failed to generate valid story after 3 attempts. Last error: {exc}")
+                prompt = f"{prompt}\n\nPrevious attempt failed with error: {exc}. Please ensure strictly valid JSON."
+                
         return state
 
     def _apply_payload(self, state: ProjectState, payload: dict, provider: str) -> None:
@@ -38,13 +45,13 @@ class StoryAgent:
         state.characters = [
             CharacterState(
                 character_id=f"char_{index + 1}",
-                name=character["name"],
-                role=character["role"],
-                voice_style=character["voice_style"],
-                visual_description=character["visual_description"],
+                name=character.get("name", f"Character {index + 1}"),
+                role=character.get("role", "character"),
+                voice_style=character.get("voice_style", "neutral"),
+                visual_description=character.get("visual_description", "A person"),
                 voice_name=character.get("voice_name"),
             )
-            for index, character in enumerate(payload["characters"])
+            for index, character in enumerate(payload.get("characters", []))
         ]
         characters_by_name = {character.name: character for character in state.characters}
         state.scenes = []

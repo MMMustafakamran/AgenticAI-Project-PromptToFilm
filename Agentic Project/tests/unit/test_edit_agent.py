@@ -49,15 +49,34 @@ def _state() -> ProjectState:
     )
 
 
-def test_edit_classifier_routes_known_commands():
+import json
+from unittest.mock import patch, MagicMock
+
+def _mock_groq_response(command):
+    command = command.lower()
+    if "voice" in command:
+        return {"intent": "change_voice_tone", "target": "audio", "details": {"character_id": "char_1", "tone": "soft"}}
+    if "darker" in command:
+        return {"intent": "adjust_scene_visuals", "target": "video_frame", "details": {"scene_id": "scene_2", "visual_change": "darker"}}
+    if "subtitles" in command:
+        return {"intent": "toggle_subtitles", "target": "video", "details": {"subtitles_enabled": False}}
+    return {"intent": "regenerate_script", "target": "script", "details": {}}
+
+@patch('requests.post')
+def test_edit_classifier_routes_known_commands(mock_post):
     state = _state()
+    mock_post.return_value.json.side_effect = lambda: {"choices": [{"message": {"content": json.dumps(_mock_groq_response(mock_post.call_args[1]["json"]["messages"][1]["content"]))}}]}
+    mock_post.return_value.raise_for_status = MagicMock()
+    
     assert classify_edit("Change Aanya voice to softer", state)[1] == "audio"
     assert classify_edit("Make scene 2 darker", state)[1] == "video_frame"
     assert classify_edit("Remove subtitles", state)[1] == "video"
 
-
-def test_edit_agent_targets_only_selected_scene():
+@patch('requests.post')
+def test_edit_agent_targets_only_selected_scene(mock_post):
     state = _state()
+    mock_post.return_value.json.side_effect = lambda: {"choices": [{"message": {"content": json.dumps(_mock_groq_response("Make scene 2 darker"))}}]}
+    mock_post.return_value.raise_for_status = MagicMock()
 
     updated, phases, intent, target = EditAgent().prepare(state, "Make scene 2 darker")
 
@@ -67,9 +86,11 @@ def test_edit_agent_targets_only_selected_scene():
     assert "darker mood" in updated.scenes[1].visual_prompt
     assert intent == "adjust_scene_visuals"
 
-
-def test_edit_agent_targets_only_selected_character_voice():
+@patch('requests.post')
+def test_edit_agent_targets_only_selected_character_voice(mock_post):
     state = _state()
+    mock_post.return_value.json.side_effect = lambda: {"choices": [{"message": {"content": json.dumps(_mock_groq_response("Change Aanya voice to softer"))}}]}
+    mock_post.return_value.raise_for_status = MagicMock()
 
     updated, phases, _, target = EditAgent().prepare(state, "Change Aanya voice to softer")
 
@@ -77,7 +98,6 @@ def test_edit_agent_targets_only_selected_character_voice():
     assert phases == ["audio", "video"]
     assert "soft and gentle" in updated.characters[0].voice_style
     assert "soft and gentle" not in updated.characters[1].voice_style
-
 
 def test_rerun_plan_targets_correct_phases():
     assert rerun_plan_for_target("script") == ["story", "audio", "video"]

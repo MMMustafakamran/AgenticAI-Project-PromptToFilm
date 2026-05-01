@@ -24,6 +24,12 @@ class StoryGenerator:
         )
 
     def generate_story_payload(self, prompt: str) -> tuple[dict, str]:
+        groq_key = env("GROQ_API")
+        if groq_key:
+            groq_payload = self._generate_with_groq(prompt, groq_key)
+            if groq_payload:
+                return groq_payload, "groq-llama-3.3"
+                
         if self.gemini_key:
             for model_name in self._candidate_models():
                 cloud_payload = self._generate_with_gemini(prompt, model_name)
@@ -45,13 +51,73 @@ class StoryGenerator:
                 ordered.append(model)
         return ordered
 
+    def _generate_with_groq(self, prompt: str, api_key: str) -> dict | None:
+        instruction = (
+            "You are an expert Hollywood screenwriter and cinematic director generating a 2-scene animated short film. "
+            "Your writing must be highly creative, atmospheric, and visually stunning. "
+            "Return ONLY valid JSON with exactly the following schema: "
+            "{ 'story': { 'title': str, 'logline': str, 'tone': str, 'summary': str }, "
+            "  'characters': [ { 'name': str, 'role': str, 'voice_style': str, 'visual_description': str } ], "
+            "  'scenes': [ { 'title': str, 'duration_sec': int, 'narration': str, 'visual_prompt': str, 'mood': str, 'subtitle_lines': [str], "
+            "                'dialogue': [ { 'character_name': str, 'text': str, 'emotion': str } ] } ] } "
+            "Constraints: "
+            "1. Use exactly 2 scenes and 1 to 3 characters. "
+            "2. 'visual_prompt' must be highly detailed, cinematic image generation prompts (e.g., 'Cinematic wide shot, cyberpunk alleyway, neon lights reflecting on wet pavement, volumetric fog, 8k, masterpiece'). "
+            "3. 'duration_sec' must be an integer between 10 and 14. "
+            "4. Make the dialogue engaging and ensure the narrative flows naturally. "
+            "Do NOT wrap the JSON in Markdown backticks or add any explanations."
+        )
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        validation_feedback = ""
+        
+        for attempt in range(4):
+            try:
+                request_text = f"{instruction}\n\nUser prompt: {prompt}"
+                if validation_feedback:
+                    request_text += f"\n\nYour previous response was invalid. Validation issue: {validation_feedback}. Return purely raw JSON."
+                    
+                body = {
+                    "model": "llama-3.3-70b-versatile",
+                    "messages": [
+                        {"role": "system", "content": "You output only raw, strictly valid JSON without markdown formatting."},
+                        {"role": "user", "content": request_text}
+                    ],
+                    "response_format": {"type": "json_object"},
+                    "temperature": 0.7
+                }
+                response = requests.post(url, json=body, headers=headers, timeout=(8, 40))
+                response.raise_for_status()
+                data = response.json()
+                content = data["choices"][0]["message"]["content"]
+                payload = json.loads(content)
+                self._validate_payload_shape(payload)
+                LOGGER.info("Groq story generation succeeded")
+                return payload
+            except Exception as exc:
+                validation_feedback = str(exc)
+                LOGGER.warning("Groq story generation failed on attempt %s: %s", attempt + 1, exc)
+                time.sleep(1.5 * (attempt + 1))
+        return None
+
     def _generate_with_gemini(self, prompt: str, model_name: str) -> dict | None:
         instruction = (
-            "You are generating a 2-scene animated short film plan. "
-            "Return only valid JSON with keys story, characters, scenes. "
-            "Use exactly 2 scenes and between 1 and 3 characters. "
-            "Each scene must include title, duration_sec, narration, visual_prompt, mood, subtitle_lines, dialogue. "
-            "Each dialogue item must include character_name, text, emotion."
+            "You are an expert Hollywood screenwriter and cinematic director generating a 2-scene animated short film. "
+            "Your writing must be highly creative, atmospheric, and visually stunning. "
+            "Return ONLY valid JSON with exactly the following schema: "
+            "{ 'story': { 'title': str, 'logline': str, 'tone': str, 'summary': str }, "
+            "  'characters': [ { 'name': str, 'role': str, 'voice_style': str, 'visual_description': str } ], "
+            "  'scenes': [ { 'title': str, 'duration_sec': int, 'narration': str, 'visual_prompt': str, 'mood': str, 'subtitle_lines': [str], "
+            "                'dialogue': [ { 'character_name': str, 'text': str, 'emotion': str } ] } ] } "
+            "Constraints: "
+            "1. Use exactly 2 scenes and 1 to 3 characters. "
+            "2. 'visual_prompt' must be highly detailed, cinematic image generation prompts (e.g., 'Cinematic wide shot, cyberpunk alleyway, neon lights reflecting on wet pavement, volumetric fog, 8k, masterpiece'). "
+            "3. 'duration_sec' must be an integer between 10 and 14. "
+            "4. Make the dialogue engaging and ensure the narrative flows naturally. "
+            "Do NOT wrap the JSON in Markdown backticks or add any explanations."
         )
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.gemini_key}"
         validation_feedback = ""

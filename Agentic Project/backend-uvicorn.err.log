@@ -1,25 +1,20 @@
-INFO:     Started server process [22744]
+INFO:     Started server process [9928]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-2026-04-26 04:03:32,930 INFO backend.app: Created project proj_wiping-floor-and-slipped_cdadd4e45a
-2026-04-26 04:03:34,359 WARNING story-generator: Gemini story generation failed with model gemini-2.5-flash on attempt 1: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyC455Hu8Fi6N0nGNa1GDId5Rbyt07BpUTc
-2026-04-26 04:03:36,864 WARNING story-generator: Gemini story generation failed with model gemini-2.5-flash on attempt 2: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyC455Hu8Fi6N0nGNa1GDId5Rbyt07BpUTc
-2026-04-26 04:03:40,338 WARNING story-generator: Gemini story generation failed with model gemini-2.5-flash on attempt 3: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyC455Hu8Fi6N0nGNa1GDId5Rbyt07BpUTc
-2026-04-26 04:03:45,825 WARNING story-generator: Gemini story generation failed with model gemini-2.5-flash on attempt 4: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyC455Hu8Fi6N0nGNa1GDId5Rbyt07BpUTc
-2026-04-26 04:03:52,822 WARNING story-generator: Gemini story generation failed with model gemini-2.0-flash on attempt 1: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyC455Hu8Fi6N0nGNa1GDId5Rbyt07BpUTc
-2026-04-26 04:03:55,298 WARNING story-generator: Gemini story generation failed with model gemini-2.0-flash on attempt 2: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyC455Hu8Fi6N0nGNa1GDId5Rbyt07BpUTc
-2026-04-26 04:03:58,727 WARNING story-generator: Gemini story generation failed with model gemini-2.0-flash on attempt 3: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyC455Hu8Fi6N0nGNa1GDId5Rbyt07BpUTc
-2026-04-26 04:04:04,214 WARNING story-generator: Gemini story generation failed with model gemini-2.0-flash on attempt 4: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyC455Hu8Fi6N0nGNa1GDId5Rbyt07BpUTc
-2026-04-26 04:04:10,751 WARNING story-generator: Gemini story generation failed with model gemini-2.5-flash-lite on attempt 1: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=AIzaSyC455Hu8Fi6N0nGNa1GDId5Rbyt07BpUTc
-2026-04-26 04:04:12,650 WARNING story-generator: Gemini story generation failed with model gemini-2.5-flash-lite on attempt 2: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=AIzaSyC455Hu8Fi6N0nGNa1GDId5Rbyt07BpUTc
-2026-04-26 04:04:16,629 WARNING story-generator: Gemini story generation failed with model gemini-2.5-flash-lite on attempt 3: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=AIzaSyC455Hu8Fi6N0nGNa1GDId5Rbyt07BpUTc
-2026-04-26 04:04:21,525 WARNING story-generator: Gemini story generation failed with model gemini-2.5-flash-lite on attempt 4: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=AIzaSyC455Hu8Fi6N0nGNa1GDId5Rbyt07BpUTc
-2026-04-26 04:04:27,925 WARNING story-generator: Gemini story generation failed with model gemini-2.0-flash-lite on attempt 1: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=AIzaSyC455Hu8Fi6N0nGNa1GDId5Rbyt07BpUTc
-2026-04-26 04:04:29,816 WARNING story-generator: Gemini story generation failed with model gemini-2.0-flash-lite on attempt 2: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=AIzaSyC455Hu8Fi6N0nGNa1GDId5Rbyt07BpUTc
-2026-04-26 04:04:33,203 WARNING story-generator: Gemini story generation failed with model gemini-2.0-flash-lite on attempt 3: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=AIzaSyC455Hu8Fi6N0nGNa1GDId5Rbyt07BpUTc
-2026-04-26 04:04:38,678 WARNING story-generator: Gemini story generation failed with model gemini-2.0-flash-lite on attempt 4: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=AIzaSyC455Hu8Fi6N0nGNa1GDId5Rbyt07BpUTc
-2026-04-26 04:04:59,487 INFO tts-generator: Edge TTS succeeded with voice en-US-JennyNeural
-2026-04-26 04:05:00,966 INFO tts-generator: Edge TTS succeeded with voice en-US-JennyNeural
-2026-04-26 04:05:02,425 INFO tts-generator: Edge TTS succeeded with voice en-US-JennyNeural
-2026-04-26 04:05:03,740 INFO tts-generator: Edge TTS succeeded with voice en-US-JennyNeural
+ERROR:    [Errno 10048] error while attempting to bind on address ('127.0.02026-05-01 05:59:13,136 INFO backend.app: Created project proj_a-cyberpunk-detective-with-a-gravelly-voice-discov_9a27c730e7
+2026-05-01 05:59:14,887 INFO story-generator: Groq story generation succeeded
+2026-05-01 05:59:18,189 INFO tts-generator: Edge TTS succeeded with voice en-GB-SoniaNeural
+2026-05-01 05:59:19,564 INFO tts-generator: Edge TTS succeeded with voice en-US-JennyNeural
+2026-05-01 05:59:20,946 INFO tts-generator: Edge TTS succeeded with voice en-GB-SoniaNeural
+2026-05-01 06:03:37,941 INFO image-generator: Kaggle Video generation succeeded
+2026-05-01 06:07:42,482 INFO image-generator: Kaggle Video generation succeeded
+2026-05-01 06:07:57,786 ERROR asyncio: Exception in callback _ProactorBasePipeTransport._call_connection_lost()
+handle: <Handle _ProactorBasePipeTransport._call_connection_lost()>
+Traceback (most recent call last):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python313\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python313\Lib\asyncio\proactor_events.py", line 165, in _call_connection_lost
+    self._sock.shutdown(socket.SHUT_RDWR)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host

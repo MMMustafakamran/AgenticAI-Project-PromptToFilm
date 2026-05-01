@@ -89,17 +89,21 @@ class TTSGenerator:
         voice_seed: int,
         preferred_voice_name: str | None = None,
     ) -> tuple[str, str, int, str]:
+        print(f"\n[INFO] Generating voice for {character_name}...")
         voice_name = preferred_voice_name or self.resolve_voice_name(character_name, voice_style, voice_seed)
         edge_path = output_base.with_suffix(".mp3")
         edge_result = self._generate_with_edge_tts(text, edge_path, voice_name)
         if edge_result is not None:
+            print(f"[SUCCESS] Voice generated successfully via Edge TTS!")
             return "edge-tts", str(edge_path), edge_result, voice_name
 
         elevenlabs_path = output_base.with_suffix(".mp3")
         elevenlabs_result = self._generate_with_elevenlabs(text, elevenlabs_path)
         if elevenlabs_result is not None:
+            print(f"[SUCCESS] Voice generated successfully via ElevenLabs!")
             return "elevenlabs", str(elevenlabs_path), elevenlabs_result, voice_name
 
+        print(f"[ERROR] Voice generation completely failed for {character_name}")
         raise RuntimeError(f"TTS generation failed for character '{character_name}' on both Edge TTS and ElevenLabs.")
 
     def resolve_voice_name(self, character_name: str, voice_style: str, voice_seed: int) -> str:
@@ -149,6 +153,7 @@ class TTSGenerator:
             LOGGER.info("Edge TTS succeeded with voice %s", voice_name)
             return duration_ms
         except Exception as exc:
+            print(f"[WARNING] Edge TTS Error: {exc}")
             LOGGER.warning("Edge TTS failed for voice %s: %s", voice_name, exc)
             return None
 
@@ -183,6 +188,7 @@ class TTSGenerator:
                     details = response.text
                 except Exception:  # pragma: no cover - defensive
                     details = "<unreadable response body>"
+            print(f"[WARNING] ElevenLabs API Error (Status {response.status_code if response is not None else 'unknown'}): {details}")
             LOGGER.warning(
                 "ElevenLabs TTS failed with status %s. Response body: %s",
                 response.status_code if response is not None else "unknown",
@@ -190,5 +196,6 @@ class TTSGenerator:
             )
             return None
         except Exception as exc:
+            print(f"[WARNING] ElevenLabs Error: {exc}")
             LOGGER.warning("ElevenLabs TTS failed: %s", exc)
             return None

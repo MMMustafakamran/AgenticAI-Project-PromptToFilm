@@ -25,8 +25,12 @@ class SceneImageGenerator:
     def generate(self, prompt: str, output_path: Path, title: str) -> tuple[str, str]:
         errors: list[str] = []
 
-        image = self._try_pollinations(prompt, errors)
-        provider = "pollinations"
+        image = self._try_kaggle_api(prompt, "image", errors)
+        provider = "kaggle-sdxl"
+
+        if image is None:
+            image = self._try_pollinations(prompt, errors)
+            provider = "pollinations"
 
         if image is None:
             image = self._try_openai(prompt, errors)
@@ -38,6 +42,49 @@ class SceneImageGenerator:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         image.save(output_path)
         return str(output_path), provider
+
+    def _try_kaggle_api(self, prompt: str, req_type: str, errors: list[str]) -> Image.Image | None:
+        kaggle_url = env("KAGGLE_API_URL")
+        if not kaggle_url:
+            return None
+            
+        try:
+            response = requests.post(kaggle_url, json={"prompt": prompt, "type": req_type}, timeout=(10, 120))
+            response.raise_for_status()
+            data = response.json()
+            if data.get("status") == "success":
+                LOGGER.info("Kaggle API generation succeeded for %s", req_type)
+                image_b64 = data["data"]
+                return Image.open(BytesIO(base64.b64decode(image_b64))).convert("RGB")
+        except Exception as exc:
+            errors.append(f"kaggle: {exc}")
+            LOGGER.warning("Kaggle API failed: %s", exc)
+        return None
+
+    def generate_video(self, prompt: str, output_path: Path, title: str) -> tuple[str, str]:
+        errors: list[str] = []
+        kaggle_url = env("KAGGLE_API_URL")
+        if not kaggle_url:
+            raise RuntimeError("KAGGLE_API_URL not configured for video generation")
+            
+        try:
+            print(f"\n[INFO] Sending request to Kaggle API for Video Generation: '{title}'")
+            print("[INFO] Please wait (this can take 5-10 minutes on Kaggle T4 GPUs)... Check your Kaggle notebook output to see progress!")
+            response = requests.post(kaggle_url, json={"prompt": prompt, "type": "video"}, timeout=(10, 1200))
+            response.raise_for_status()
+            data = response.json()
+            if data.get("status") == "success":
+                print("[SUCCESS] Kaggle Video Generation Complete!")
+                LOGGER.info("Kaggle Video generation succeeded")
+                video_b64 = data["data"]
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.write_bytes(base64.b64decode(video_b64))
+                return str(output_path), "kaggle-cogvideo"
+        except Exception as exc:
+            errors.append(f"kaggle video: {exc}")
+            LOGGER.warning("Kaggle Video API failed: %s", exc)
+            
+        raise RuntimeError(f"Video generation failed for '{title}': {' | '.join(errors)}")
 
     def _try_pollinations(self, prompt: str, errors: list[str]) -> Image.Image | None:
         url = f"https://image.pollinations.ai/prompt/{quote_plus(prompt)}?model={self.pollinations_model}&width=1280&height=720"
