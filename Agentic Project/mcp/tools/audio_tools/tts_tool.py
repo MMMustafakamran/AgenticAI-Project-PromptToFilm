@@ -88,34 +88,40 @@ class TTSGenerator:
         output_base: Path,
         voice_seed: int,
         preferred_voice_name: str | None = None,
+        visual_description: str = "",
     ) -> tuple[str, str, int, str]:
         print(f"\n[INFO] Generating voice for {character_name}...")
-        voice_name = preferred_voice_name or self.resolve_voice_name(character_name, voice_style, voice_seed)
+        voice_name = preferred_voice_name or self.resolve_voice_name(character_name, voice_style, voice_seed, visual_description)
+        elevenlabs_path = output_base.with_suffix(".mp3")
+        elevenlabs_voice_id = self.resolve_elevenlabs_voice(character_name, voice_style, voice_seed, visual_description)
+        elevenlabs_result = self._generate_with_elevenlabs(text, elevenlabs_path, elevenlabs_voice_id)
+        if elevenlabs_result is not None:
+            print(f"[SUCCESS] Voice generated successfully via ElevenLabs!")
+            return "elevenlabs", str(elevenlabs_path), elevenlabs_result, elevenlabs_voice_id
+
         edge_path = output_base.with_suffix(".mp3")
         edge_result = self._generate_with_edge_tts(text, edge_path, voice_name)
         if edge_result is not None:
             print(f"[SUCCESS] Voice generated successfully via Edge TTS!")
             return "edge-tts", str(edge_path), edge_result, voice_name
 
-        elevenlabs_path = output_base.with_suffix(".mp3")
-        elevenlabs_result = self._generate_with_elevenlabs(text, elevenlabs_path)
-        if elevenlabs_result is not None:
-            print(f"[SUCCESS] Voice generated successfully via ElevenLabs!")
-            return "elevenlabs", str(elevenlabs_path), elevenlabs_result, voice_name
-
         print(f"[ERROR] Voice generation completely failed for {character_name}")
         raise RuntimeError(f"TTS generation failed for character '{character_name}' on both Edge TTS and ElevenLabs.")
 
-    def resolve_voice_name(self, character_name: str, voice_style: str, voice_seed: int) -> str:
+    def resolve_voice_name(self, character_name: str, voice_style: str, voice_seed: int, visual_description: str = "") -> str:
         if character_name in self.voice_map:
             return self.voice_map[character_name]
         if voice_style in self.voice_map:
             return self.voice_map[voice_style]
 
-        style_key = voice_style.lower()
-        if any(keyword in style_key for keyword in ("soft", "calm", "warm", "gentle", "reflective", "reassuring")):
+        style_key = (voice_style + " " + visual_description + " " + character_name).lower()
+        if "female" in style_key or "woman" in style_key or "girl" in style_key:
             pool = EDGE_SOFT_VOICES
-        elif any(keyword in style_key for keyword in ("bold", "strong", "grounded", "energetic", "confident")):
+        elif "male" in style_key or "man" in style_key or "boy" in style_key:
+            pool = EDGE_BOLD_VOICES
+        elif any(keyword in style_key for keyword in ("soft", "calm", "warm", "gentle", "reflective", "reassuring")):
+            pool = EDGE_SOFT_VOICES
+        elif any(keyword in style_key for keyword in ("bold", "strong", "grounded", "energetic", "confident", "deep")):
             pool = EDGE_BOLD_VOICES
         else:
             pool = EDGE_DEFAULT_VOICES
@@ -123,6 +129,58 @@ class TTSGenerator:
         seed_material = f"{character_name}:{voice_style}:{voice_seed}".encode("utf-8")
         index = int(hashlib.sha256(seed_material).hexdigest(), 16) % len(pool)
         return pool[index] if pool else self.default_voice
+
+    def resolve_elevenlabs_voice(self, character_name: str, voice_style: str, voice_seed: int, visual_description: str = "") -> str | None:
+        if not self.elevenlabs_key:
+            return None
+            
+        if not hasattr(self, "_elevenlabs_default_voices"):
+            try:
+                url = "https://api.elevenlabs.io/v1/voices"
+                headers = {"xi-api-key": self.elevenlabs_key}
+                response = requests.get(url, headers=headers, timeout=10)
+                response.raise_for_status()
+                data = response.json()
+                
+                self._elevenlabs_female_voices = []
+                self._elevenlabs_male_voices = []
+                self._elevenlabs_default_voices = []
+                
+                for v in data.get("voices", []):
+                    if "voice_id" not in v:
+                        continue
+                    vid = v["voice_id"]
+                    gender = v.get("labels", {}).get("gender", "").lower()
+                    self._elevenlabs_default_voices.append(vid)
+                    
+                    if gender == "female":
+                        self._elevenlabs_female_voices.append(vid)
+                    elif gender == "male":
+                        self._elevenlabs_male_voices.append(vid)
+            except Exception as e:
+                LOGGER.warning(f"Failed to fetch ElevenLabs voices: {e}")
+                self._elevenlabs_female_voices = []
+                self._elevenlabs_male_voices = []
+                self._elevenlabs_default_voices = []
+
+        style_key = (voice_style + " " + visual_description + " " + character_name).lower()
+        if "female" in style_key or "woman" in style_key or "girl" in style_key:
+            pool = self._elevenlabs_female_voices if self._elevenlabs_female_voices else self._elevenlabs_default_voices
+        elif "male" in style_key or "man" in style_key or "boy" in style_key:
+            pool = self._elevenlabs_male_voices if self._elevenlabs_male_voices else self._elevenlabs_default_voices
+        elif any(keyword in style_key for keyword in ("soft", "calm", "warm", "gentle", "reflective", "reassuring")):
+            pool = self._elevenlabs_female_voices if self._elevenlabs_female_voices else self._elevenlabs_default_voices
+        elif any(keyword in style_key for keyword in ("bold", "strong", "grounded", "energetic", "confident", "deep")):
+            pool = self._elevenlabs_male_voices if self._elevenlabs_male_voices else self._elevenlabs_default_voices
+        else:
+            pool = self._elevenlabs_default_voices
+            
+        if not pool:
+            return self.voice_id
+            
+        seed_material = f"elevenlabs:{character_name}:{voice_style}:{voice_seed}".encode("utf-8")
+        index = int(hashlib.sha256(seed_material).hexdigest(), 16) % len(pool)
+        return pool[index]
 
     def _load_voice_map(self) -> dict[str, str]:
         raw = env("EDGE_TTS_VOICE_MAP")
@@ -157,11 +215,11 @@ class TTSGenerator:
             LOGGER.warning("Edge TTS failed for voice %s: %s", voice_name, exc)
             return None
 
-    def _generate_with_elevenlabs(self, text: str, output_path: Path) -> int | None:
-        if not self.elevenlabs_key:
+    def _generate_with_elevenlabs(self, text: str, output_path: Path, voice_id: str | None) -> int | None:
+        if not self.elevenlabs_key or not voice_id:
             return None
 
-        url = f"https://api.elevenlabs.io/v1/text-to-speech/{self.voice_id}"
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
         headers = {
             "xi-api-key": self.elevenlabs_key,
             "accept": "audio/mpeg",

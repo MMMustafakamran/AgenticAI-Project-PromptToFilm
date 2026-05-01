@@ -56,7 +56,7 @@ export default function App() {
       audioOutput = {
         icon: Volume2,
         title: "timing_manifest.json",
-        data: `Tracks: ${project.audio?.dialogue_tracks?.length || 0}\nBGM: Generated\nTotal Audio Ready`
+        data: `Tracks: ${project.audio?.timing_manifest?.length || 0}\nProvider: ${project.audio?.provider || 'Unknown'}\nTotal Audio Ready`
       };
     }
     
@@ -65,7 +65,7 @@ export default function App() {
       videoOutput = {
         icon: ImagePlay,
         title: "render_pipeline.log",
-        data: `[Stable Diffusion] Images compiled\n[MoviePy] A/V compositing successful\n[FFmpeg] Output saved`
+        data: `[${project.video?.image_provider || 'Generator'}] Rendered ${project.scenes?.length || 0} scenes\n[MoviePy] Composited with audio\n[FFmpeg] Final video ready`
       };
     }
     

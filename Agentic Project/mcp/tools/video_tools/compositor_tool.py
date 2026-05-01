@@ -30,7 +30,8 @@ def compose_video(state: ProjectState, output_path: Path) -> str:
         if scene.image_path.endswith(".mp4"):
             video_clip = VideoFileClip(scene.image_path).resized(height=720).with_position("center")
             if video_clip.duration < scene_duration:
-                animated = video_clip.with_effects([vfx.Loop(duration=scene_duration)])
+                repeats = int(scene_duration / video_clip.duration) + 1
+                animated = concatenate_videoclips([video_clip] * repeats, method="compose").subclipped(0, scene_duration)
             else:
                 animated = video_clip.subclipped(0, scene_duration)
         else:

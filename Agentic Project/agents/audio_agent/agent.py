@@ -38,6 +38,7 @@ class AudioAgent:
                     output_base=output_base,
                     voice_seed=(line_index + 1),
                     preferred_voice_name=character.voice_name,
+                    visual_description=character.visual_description,
                 )
                 lines_processed += 1
                 if progress_cb and total_lines > 0:
