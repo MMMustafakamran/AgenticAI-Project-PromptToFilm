@@ -18,9 +18,9 @@ class StateManager:
         ensure_directories()
         self.storage = storage or SQLiteStorage()
 
-    def create_project(self, prompt: str) -> ProjectState:
+    def create_project(self, prompt: str, num_scenes: int = 2) -> ProjectState:
         project_id = self._build_project_id(prompt)
-        state = ProjectState(project_id=project_id, prompt=prompt)
+        state = ProjectState(project_id=project_id, prompt=prompt, num_scenes=num_scenes)
         self.save_state(state)
         return state
 

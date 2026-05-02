@@ -33,6 +33,7 @@ app.mount("/artifacts", StaticFiles(directory=str(OUTPUTS_ROOT)), name="artifact
 
 class CreateProjectRequest(BaseModel):
     prompt: str
+    num_scenes: int = 2
 
 
 class EditRequest(BaseModel):
@@ -55,7 +56,7 @@ async def list_projects():
 
 @app.post("/projects")
 async def create_project(payload: CreateProjectRequest):
-    state = workflow.state_manager.create_project(payload.prompt)
+    state = workflow.state_manager.create_project(payload.prompt, payload.num_scenes)
     LOGGER.info("Created project %s", state.project_id)
     asyncio.create_task(workflow.run_full_project(state.project_id))
     return workflow.state_manager.load_state(state.project_id).model_dump(mode="json")

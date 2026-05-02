@@ -22,7 +22,7 @@ class VideoAgent:
         image_dir = project_dir / "images"
         image_dir.mkdir(parents=True, exist_ok=True)
 
-        style_hint = "cinematic 2D animated short, polished lighting, coherent character styling"
+        style_hint = "cinematic 2D animated short, polished lighting, highly detailed symmetrical faces, sharp facial features, perfect anatomy, masterpiece, coherent character styling"
         scene_images: list[str] = []
         image_providers: list[str] = []
         

@@ -26,6 +26,7 @@ function artifactUrl(path) {
 export default function App() {
   const [appState, setAppState] = useState('idle'); // 'idle' | 'generating' | 'completed' | 'failed'
   const [mainPrompt, setMainPrompt] = useState('');
+  const [numScenes, setNumScenes] = useState(2);
   const [editPrompt, setEditPrompt] = useState('');
   
   const [project, setProject] = useState(null);
@@ -188,7 +189,7 @@ export default function App() {
       const data = await requestJson(`${API_BASE}/projects`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: mainPrompt }),
+        body: JSON.stringify({ prompt: mainPrompt, num_scenes: numScenes }),
       });
       setProject(data);
     } catch (error) {
@@ -285,14 +286,26 @@ export default function App() {
                 className="w-full bg-transparent text-slate-200 placeholder-slate-500 p-4 outline-none resize-none h-24 sm:h-auto font-medium"
                 autoFocus
               />
-              <button 
-                type="submit"
-                disabled={!mainPrompt.trim()}
-                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors shrink-0"
-              >
-                <Sparkles className="w-5 h-5" />
-                Generate
-              </button>
+              <div className="flex flex-col gap-2 shrink-0 justify-end">
+                <div className="flex items-center justify-between px-2 text-sm text-slate-400 font-medium">
+                  <span>Scenes:</span>
+                  <select 
+                    value={numScenes}
+                    onChange={(e) => setNumScenes(parseInt(e.target.value))}
+                    className="bg-slate-800 border border-slate-700 rounded-md px-2 py-1 outline-none text-slate-200 cursor-pointer"
+                  >
+                    {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+                <button 
+                  type="submit"
+                  disabled={!mainPrompt.trim()}
+                  className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  Generate
+                </button>
+              </div>
             </div>
           </form>
           

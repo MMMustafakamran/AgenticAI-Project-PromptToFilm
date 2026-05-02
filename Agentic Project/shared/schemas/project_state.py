@@ -66,6 +66,7 @@ class TimingManifestEntry(BaseModel):
 class AudioState(BaseModel):
     dialogue_tracks: list[DialogueTrack] = Field(default_factory=list)
     bgm_track: str | None = None
+    bgm_volume: float = 0.2
     timing_manifest: list[TimingManifestEntry] = Field(default_factory=list)
     final_audio_path: str | None = None
     provider: str = "pending"
@@ -120,6 +121,7 @@ class StoryState(BaseModel):
 class ProjectState(BaseModel):
     project_id: str
     prompt: str
+    num_scenes: int = 2
     status: Literal["queued", "running", "completed", "failed"] = "queued"
     current_phase: Literal["idle", "story", "audio", "video", "edit"] = "idle"
     current_version: str | None = None
@@ -134,13 +136,6 @@ class ProjectState(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     last_error: str | None = None
-
-    @field_validator("scenes")
-    @classmethod
-    def validate_scene_count(cls, scenes: list[SceneState]) -> list[SceneState]:
-        if scenes and len(scenes) != 2:
-            raise ValueError("Exactly 2 scenes are required for the MVP.")
-        return scenes
 
     def touch(self) -> None:
         self.updated_at = datetime.utcnow()

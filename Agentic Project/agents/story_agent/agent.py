@@ -23,7 +23,7 @@ class StoryAgent:
         print("\n[INFO] Sending request to LLM for Script Generation...")
         for attempt in range(3):
             try:
-                payload, provider = self.generator.generate_story_payload(prompt)
+                payload, provider = self.generator.generate_story_payload(prompt, num_scenes=state.num_scenes)
                 if progress_cb: progress_cb(80, f"Parsing and validating story structure (Attempt {attempt + 1})...")
                 self._apply_payload(state, payload, provider)
                 if progress_cb: progress_cb(100, "Story finalized")

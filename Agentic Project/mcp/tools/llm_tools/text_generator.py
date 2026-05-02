@@ -23,16 +23,16 @@ class StoryGenerator:
             "gemini-2.5-flash-lite,gemini-2.0-flash,gemini-2.0-flash-lite",
         )
 
-    def generate_story_payload(self, prompt: str) -> tuple[dict, str]:
+    def generate_story_payload(self, prompt: str, num_scenes: int = 2) -> tuple[dict, str]:
         groq_key = env("GROQ_API")
         if groq_key:
-            groq_payload = self._generate_with_groq(prompt, groq_key)
+            groq_payload = self._generate_with_groq(prompt, groq_key, num_scenes)
             if groq_payload:
                 return groq_payload, "groq-llama-3.3"
                 
         if self.gemini_key:
             for model_name in self._candidate_models():
-                cloud_payload = self._generate_with_gemini(prompt, model_name)
+                cloud_payload = self._generate_with_gemini(prompt, model_name, num_scenes)
                 if cloud_payload:
                     return cloud_payload, model_name
         return self.fallback_story_payload(prompt), "fallback"
@@ -51,9 +51,9 @@ class StoryGenerator:
                 ordered.append(model)
         return ordered
 
-    def _generate_with_groq(self, prompt: str, api_key: str) -> dict | None:
+    def _generate_with_groq(self, prompt: str, api_key: str, num_scenes: int) -> dict | None:
         instruction = (
-            "You are an expert Hollywood screenwriter and cinematic director generating a 2-scene animated short film. "
+            f"You are an expert Hollywood screenwriter and cinematic director generating a {num_scenes}-scene animated short film. "
             "Your writing must be highly creative, atmospheric, and visually stunning. "
             "Return ONLY valid JSON with exactly the following schema: "
             "{ 'story': { 'title': str, 'logline': str, 'tone': str, 'summary': str }, "
@@ -61,7 +61,7 @@ class StoryGenerator:
             "  'scenes': [ { 'title': str, 'duration_sec': int, 'narration': str, 'visual_prompt': str, 'mood': str, 'subtitle_lines': [str], "
             "                'dialogue': [ { 'character_name': str, 'text': str, 'emotion': str } ] } ] } "
             "Constraints: "
-            "1. Use exactly 2 scenes and 1 to 3 characters. "
+            f"1. Use exactly {num_scenes} scenes and 1 to 3 characters. "
             "2. 'visual_prompt' must be highly detailed, cinematic image generation prompts (e.g., 'Cinematic wide shot, cyberpunk alleyway, neon lights reflecting on wet pavement, volumetric fog, 8k, masterpiece'). "
             "3. 'duration_sec' must be an integer between 10 and 14. "
             "4. Make the dialogue engaging and ensure the narrative flows naturally. "
@@ -94,7 +94,7 @@ class StoryGenerator:
                 data = response.json()
                 content = data["choices"][0]["message"]["content"]
                 payload = json.loads(content)
-                self._validate_payload_shape(payload)
+                self._validate_payload_shape(payload, num_scenes)
                 LOGGER.info("Groq story generation succeeded")
                 return payload
             except Exception as exc:
@@ -103,9 +103,9 @@ class StoryGenerator:
                 time.sleep(1.5 * (attempt + 1))
         return None
 
-    def _generate_with_gemini(self, prompt: str, model_name: str) -> dict | None:
+    def _generate_with_gemini(self, prompt: str, model_name: str, num_scenes: int) -> dict | None:
         instruction = (
-            "You are an expert Hollywood screenwriter and cinematic director generating a 2-scene animated short film. "
+            f"You are an expert Hollywood screenwriter and cinematic director generating a {num_scenes}-scene animated short film. "
             "Your writing must be highly creative, atmospheric, and visually stunning. "
             "Return ONLY valid JSON with exactly the following schema: "
             "{ 'story': { 'title': str, 'logline': str, 'tone': str, 'summary': str }, "
@@ -113,7 +113,7 @@ class StoryGenerator:
             "  'scenes': [ { 'title': str, 'duration_sec': int, 'narration': str, 'visual_prompt': str, 'mood': str, 'subtitle_lines': [str], "
             "                'dialogue': [ { 'character_name': str, 'text': str, 'emotion': str } ] } ] } "
             "Constraints: "
-            "1. Use exactly 2 scenes and 1 to 3 characters. "
+            f"1. Use exactly {num_scenes} scenes and 1 to 3 characters. "
             "2. 'visual_prompt' must be highly detailed, cinematic image generation prompts (e.g., 'Cinematic wide shot, cyberpunk alleyway, neon lights reflecting on wet pavement, volumetric fog, 8k, masterpiece'). "
             "3. 'duration_sec' must be an integer between 10 and 14. "
             "4. Make the dialogue engaging and ensure the narrative flows naturally. "
@@ -138,7 +138,7 @@ class StoryGenerator:
                 data = response.json()
                 content = data["candidates"][0]["content"]["parts"][0]["text"]
                 payload = json.loads(content)
-                self._validate_payload_shape(payload)
+                self._validate_payload_shape(payload, num_scenes)
                 LOGGER.info("Gemini story generation succeeded with model %s", model_name)
                 return payload
             except Exception as exc:  # pragma: no cover - network failure fallback
@@ -152,15 +152,15 @@ class StoryGenerator:
                 time.sleep(1.5 * (attempt + 1))
         return None
 
-    def _validate_payload_shape(self, payload: dict) -> None:
+    def _validate_payload_shape(self, payload: dict, num_scenes: int) -> None:
         if not isinstance(payload, dict):
             raise ValueError("Story payload must be a JSON object.")
         if not isinstance(payload.get("story"), dict):
             raise ValueError("Field 'story' must be an object.")
         if not isinstance(payload.get("characters"), list) or not payload["characters"]:
             raise ValueError("Field 'characters' must be a non-empty list.")
-        if not isinstance(payload.get("scenes"), list) or len(payload["scenes"]) != 2:
-            raise ValueError("Field 'scenes' must contain exactly 2 scenes.")
+        if not isinstance(payload.get("scenes"), list) or len(payload["scenes"]) != num_scenes:
+            raise ValueError(f"Field 'scenes' must contain exactly {num_scenes} scenes.")
 
     def _generate_fallback(self, prompt: str) -> dict:
         subject = shorten(prompt, width=80, placeholder="...")

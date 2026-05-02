@@ -36,8 +36,6 @@ class AudioAgent:
                     voice_style=character.voice_style,
                     character_name=character.name,
                     output_base=output_base,
-                    voice_seed=(line_index + 1),
-                    preferred_voice_name=character.voice_name,
                     visual_description=character.visual_description,
                 )
                 lines_processed += 1
@@ -45,7 +43,6 @@ class AudioAgent:
                     prog = int((lines_processed / total_lines) * 80)
                     progress_cb(prog, f"Synthesized audio for {character.name}")
 
-                character.voice_name = character.voice_name or voice_name
                 if provider not in providers_used:
                     providers_used.append(provider)
                 dialogue_tracks.append(
@@ -73,8 +70,13 @@ class AudioAgent:
                     )
                 )
                 current_ms += duration_ms + 350
+
+            expected_scene_end_ms = scene_start_ms + (scene.duration_sec * 1000)
+            if current_ms < expected_scene_end_ms:
+                current_ms = expected_scene_end_ms
+
             scene.audio_start_ms = scene_start_ms
-            scene.audio_end_ms = max(scene_start_ms, current_ms - 350)
+            scene.audio_end_ms = current_ms
 
         bgm_duration = max(20, int(max((current_ms / 1000), sum(scene.duration_sec for scene in state.scenes))))
         bgm_track_path = project_dir / "bgm.wav"
@@ -85,6 +87,7 @@ class AudioAgent:
             timing_manifest=timing_manifest,
             bgm_track=bgm_track,
             output_path=project_dir / "final_audio.wav",
+            bgm_volume=state.audio.bgm_volume,
         )
         if progress_cb: progress_cb(100, "Audio generation complete")
 

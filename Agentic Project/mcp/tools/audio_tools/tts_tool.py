@@ -86,29 +86,29 @@ class TTSGenerator:
         voice_style: str,
         character_name: str,
         output_base: Path,
-        voice_seed: int,
+        voice_seed: int = 0,
         preferred_voice_name: str | None = None,
         visual_description: str = "",
     ) -> tuple[str, str, int, str]:
         print(f"\n[INFO] Generating voice for {character_name}...")
-        voice_name = preferred_voice_name or self.resolve_voice_name(character_name, voice_style, voice_seed, visual_description)
+        elevenlabs_voice_id = self.resolve_elevenlabs_voice(character_name, voice_style, visual_description)
         elevenlabs_path = output_base.with_suffix(".mp3")
-        elevenlabs_voice_id = self.resolve_elevenlabs_voice(character_name, voice_style, voice_seed, visual_description)
         elevenlabs_result = self._generate_with_elevenlabs(text, elevenlabs_path, elevenlabs_voice_id)
         if elevenlabs_result is not None:
             print(f"[SUCCESS] Voice generated successfully via ElevenLabs!")
             return "elevenlabs", str(elevenlabs_path), elevenlabs_result, elevenlabs_voice_id
 
+        edge_voice_name = self.resolve_voice_name(character_name, voice_style, visual_description)
         edge_path = output_base.with_suffix(".mp3")
-        edge_result = self._generate_with_edge_tts(text, edge_path, voice_name)
+        edge_result = self._generate_with_edge_tts(text, edge_path, edge_voice_name)
         if edge_result is not None:
             print(f"[SUCCESS] Voice generated successfully via Edge TTS!")
-            return "edge-tts", str(edge_path), edge_result, voice_name
+            return "edge-tts", str(edge_path), edge_result, edge_voice_name
 
         print(f"[ERROR] Voice generation completely failed for {character_name}")
         raise RuntimeError(f"TTS generation failed for character '{character_name}' on both Edge TTS and ElevenLabs.")
 
-    def resolve_voice_name(self, character_name: str, voice_style: str, voice_seed: int, visual_description: str = "") -> str:
+    def resolve_voice_name(self, character_name: str, voice_style: str, visual_description: str = "") -> str:
         if character_name in self.voice_map:
             return self.voice_map[character_name]
         if voice_style in self.voice_map:
@@ -126,11 +126,11 @@ class TTSGenerator:
         else:
             pool = EDGE_DEFAULT_VOICES
 
-        seed_material = f"{character_name}:{voice_style}:{voice_seed}".encode("utf-8")
+        seed_material = f"{character_name}:{voice_style}".encode("utf-8")
         index = int(hashlib.sha256(seed_material).hexdigest(), 16) % len(pool)
         return pool[index] if pool else self.default_voice
 
-    def resolve_elevenlabs_voice(self, character_name: str, voice_style: str, voice_seed: int, visual_description: str = "") -> str | None:
+    def resolve_elevenlabs_voice(self, character_name: str, voice_style: str, visual_description: str = "") -> str | None:
         if not self.elevenlabs_key:
             return None
             
@@ -178,7 +178,7 @@ class TTSGenerator:
         if not pool:
             return self.voice_id
             
-        seed_material = f"elevenlabs:{character_name}:{voice_style}:{voice_seed}".encode("utf-8")
+        seed_material = f"{character_name}:{voice_style}".encode("utf-8")
         index = int(hashlib.sha256(seed_material).hexdigest(), 16) % len(pool)
         return pool[index]
 
