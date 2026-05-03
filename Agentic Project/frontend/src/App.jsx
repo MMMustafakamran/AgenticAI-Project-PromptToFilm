@@ -76,7 +76,7 @@ export default function App() {
   const versions = useMemo(() => {
     return (project?.versions || []).slice().reverse().map(v => ({
       id: v.version_id,
-      timestamp: new Date().toLocaleTimeString(),
+      timestamp: v.created_at ? new Date(v.created_at).toLocaleTimeString() : new Date().toLocaleTimeString(),
       trigger: v.trigger,
       videoUrl: artifactUrl(v.artifact_paths?.find(p => p.endsWith('.mp4')))
     }));
@@ -107,12 +107,16 @@ export default function App() {
           }
         } else if (payload.type === "progress") {
           setProgress(p => ({ ...p, [payload.phase]: Math.max(p[payload.phase], payload.progress) }));
-        } else if (payload.type === "edit") {
-          if (payload.status === "completed") {
+        } else if (payload.type === 'edit') {
+          if (payload.status === 'completed') {
             setProgress(p => ({ ...p, edit: 100 }));
             setActivePhase(null);
-          } else if (payload.status === "failed") {
+            setAppState('completed');
+            refreshProject(project.project_id);
+          } else if (payload.status === 'failed') {
             setActivePhase(null);
+            setAppState('failed');
+            setUiError(payload.error || 'Edit failed');
           }
         } else if (payload.type === "status") {
           if (payload.status === "completed") {
@@ -201,19 +205,23 @@ export default function App() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!editPrompt.trim() || !project) return;
-    
+
     try {
-      setAppState('generating');
       setActivePhase('edit');
-      setUiError("");
-      
-      await requestJson(`${API_BASE}/projects/${project.project_id}/edit`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      setUiError('');
+      setAppState('generating');
+
+      // Fire-and-forget: the backend runs async; SSE events drive UI updates
+      requestJson(`${API_BASE}/projects/${project.project_id}/edit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command: editPrompt }),
+      }).catch((error) => {
+        setUiError(error.message);
+        setAppState('failed');
       });
-      setEditPrompt("");
-      await refreshProject();
+
+      setEditPrompt('');
     } catch (error) {
       setUiError(error.message);
       setAppState('failed');

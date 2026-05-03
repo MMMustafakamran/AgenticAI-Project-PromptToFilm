@@ -49,7 +49,7 @@ class WorkflowService:
         state = self.state_manager.load_state(project_id)
         state.current_phase = phase
         state.status = "running"
-        self._invalidate_downstream(state, phase)
+        self._invalidate_downstream(state, phase, trigger=trigger)
         self.state_manager.save_state(state)
         await self.broker.publish(project_id, {"type": "phase", "phase": phase, "status": "started"})
         
@@ -133,7 +133,9 @@ class WorkflowService:
         ]
         return [path for path in paths if path]
 
-    def _invalidate_downstream(self, state, phase: str) -> None:
+    def _invalidate_downstream(self, state, phase: str, trigger: str = "") -> None:
+        is_bgm_only = "bgm_volume" in trigger or "adjust_bgm" in trigger or "background_music" in trigger
+
         if phase == "story":
             for scene in state.scenes:
                 scene.audio_start_ms = None
@@ -163,10 +165,17 @@ class WorkflowService:
             state.artifacts.final_video = None
             state.artifacts.scene_images = []
         elif phase == "audio":
-            for scene in state.scenes:
-                scene.audio_start_ms = None
-                scene.audio_end_ms = None
-                scene.clip_path = None
+            if not is_bgm_only:
+                # Full audio invalidation: clear TTS tracks AND manifest so they regenerate
+                for scene in state.scenes:
+                    scene.audio_start_ms = None
+                    scene.audio_end_ms = None
+                    scene.clip_path = None
+                state.audio.dialogue_tracks = []
+                state.audio.timing_manifest = []  # MUST clear so BGM fast path doesn't fire
+            # Always clear final audio + video output so they recomposite
+            state.audio.bgm_track = None
+            state.audio.final_audio_path = None
             state.video.scene_images = []
             state.video.scene_clips = []
             state.video.subtitle_file = None
@@ -176,5 +185,6 @@ class WorkflowService:
             state.artifacts.final_video = None
             state.artifacts.subtitle_file = None
         elif phase == "video":
+            # Only clear clip_path (recomposite). image_path is cleared by executor if needed.
             for scene in state.scenes:
                 scene.clip_path = None

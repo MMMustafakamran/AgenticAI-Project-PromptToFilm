@@ -22,20 +22,33 @@ def classify_edit(command: str, state: ProjectState) -> tuple[str, EditTarget, d
     
     system_prompt = f"""You are an intent classification agent for a video editing pipeline.
 Available targets: "script", "audio", "video_frame", "video".
-Analyze the user's command and determine what they want to change.
 {context}
+
+TARGET SELECTION RULES (follow strictly):
+- "script"      → user wants to rewrite/regenerate the story or dialogue
+- "audio"       → user wants to change a character's VOICE tone/style, OR adjust background music volume
+- "video_frame" → user wants to change how something LOOKS visually (lighting, color, character appearance)
+- "video"       → user wants to change subtitles, video speed, or scene duration only
+
+INTENT SELECTION RULES for video_frame target (CRITICAL - pick the correct one):
+- Use intent "change_character_design" ONLY when the change targets a CHARACTER's physical appearance:
+  hair color, hair style, eye color, outfit/clothing, body type, skin color, facial features, accessories.
+  Examples: "make her hair green", "change Viktor's armour to red", "give Akira blue eyes"
+- Use intent "adjust_scene_visuals" ONLY when the change targets SCENE-LEVEL lighting/mood/color grading:
+  brightness, darkness, saturation, vignette, fog, neon glow, color filters.
+  Examples: "make the scene darker", "add a vignette", "make it more vibrant"
 
 Output ONLY valid JSON matching this schema exactly:
 {{
-  "intent": "string (e.g. change_voice_tone, adjust_scene_visuals, toggle_subtitles, regenerate_script)",
+  "intent": "string (change_voice_tone | adjust_bgm_volume | adjust_scene_visuals | change_character_design | toggle_subtitles | adjust_scene_speed | regenerate_script)",
   "target": "string (MUST BE one of: script, audio, video_frame, video)",
   "details": {{
     "scene_id": "string or null",
-    "character_id": "string or null",
+    "character_id": "string (use the character_id from context, not name) or null",
     "tone": "string or null",
-    "visual_change": "string or null",
+    "visual_change": "string describing the exact change requested, or null",
     "subtitles_enabled": "boolean or null",
-    "duration_delta": "integer or null"
+    "duration_delta": "integer seconds to add/subtract, or null"
   }}
 }}"""
 

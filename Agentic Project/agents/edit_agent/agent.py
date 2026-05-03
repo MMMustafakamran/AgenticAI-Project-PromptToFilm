@@ -13,4 +13,4 @@ class EditAgent:
     def prepare(self, state: ProjectState, command: str) -> tuple[ProjectState, list[str], str, str]:
         intent, target, details = classify_edit(command, state)
         updated_state = self.executor.apply(state, command, intent, target, details)
-        return updated_state, rerun_plan_for_target(target), intent, target
+        return updated_state, rerun_plan_for_target(target, intent), intent, target

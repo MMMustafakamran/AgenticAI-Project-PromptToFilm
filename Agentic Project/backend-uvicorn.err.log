@@ -1,18 +1,40 @@
-INFO:     Started server process [6228]
+INFO:     Started server process [2620]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-2026-05-02 18:40:09,452 INFO backend.app: Created project proj_a-dramatic-sci-fi-standoff-a-female-cyber-ninja-wi_43c923fe8e
-2026-05-02 18:40:10,970 INFO story-generator: Groq story generation succeeded
-2026-05-02 18:40:13,471 INFO tts-generator: ElevenLabs TTS succeeded for 7 words
-2026-05-02 18:40:14,235 INFO tts-generator: ElevenLabs TTS succeeded for 2 words
-2026-05-02 18:44:19,232 INFO image-generator: Kaggle Video generation succeeded
-2026-05-02 18:48:07,312 INFO image-generator: Kaggle Video generation succeeded
-C:\Users\HP\Desktop\Agentic_Project\AgenticAI-Project-PromptToFilm\Agentic Project\.venv\Lib\site-packages\moviepy\video\io\ffmpeg_reader.py:157: UserWarning: In file C:\Users\HP\Desktop\Agentic_Project\AgenticAI-Project-PromptToFilm\Agentic Project\data\outputs\proj_a-dramatic-sci-fi-standoff-a-female-cyber-ninja-wi_43c923fe8e\video\images\scene_1.mp4, 1769472 bytes wanted but 0 bytes read at frame index 19 (out of a total 20 frames), at time 2.71/2.86 sec. Using the last valid frame instead.
+2026-05-03 20:07:35,720 INFO backend.app: Created project proj_a-dramatic-sci-fi-standoff-a-female-cyber-ninja-wi_88f31e7993
+2026-05-03 20:07:37,512 INFO story-generator: Groq story generation succeeded
+2026-05-03 20:07:39,745 INFO tts-generator: ElevenLabs TTS succeeded for 7 words
+2026-05-03 20:07:40,755 INFO tts-generator: ElevenLabs TTS succeeded for 9 words
+2026-05-03 20:07:42,092 INFO tts-generator: ElevenLabs TTS succeeded for 2 words
+2026-05-03 20:07:43,071 INFO tts-generator: ElevenLabs TTS succeeded for 4 words
+2026-05-03 20:11:58,586 INFO image-generator: Kaggle Video generation succeeded
+2026-05-03 20:16:07,638 INFO image-generator: Kaggle Video generation succeeded
+C:\Users\HP\Desktop\Agentic_Project\AgenticAI-Project-PromptToFilm\Agentic Project\.venv\Lib\site-packages\moviepy\video\io\ffmpeg_reader.py:157: UserWarning: In file C:\Users\HP\Desktop\Agentic_Project\AgenticAI-Project-PromptToFilm\Agentic Project\data\outputs\proj_a-dramatic-sci-fi-standoff-a-female-cyber-ninja-wi_88f31e7993\video\images\scene_1.mp4, 1769472 bytes wanted but 0 bytes read at frame index 19 (out of a total 20 frames), at time 2.71/2.86 sec. Using the last valid frame instead.
   warnings.warn(
-C:\Users\HP\Desktop\Agentic_Project\AgenticAI-Project-PromptToFilm\Agentic Project\.venv\Lib\site-packages\moviepy\video\io\ffmpeg_reader.py:157: UserWarning: In file C:\Users\HP\Desktop\Agentic_Project\AgenticAI-Project-PromptToFilm\Agentic Project\data\outputs\proj_a-dramatic-sci-fi-standoff-a-female-cyber-ninja-wi_43c923fe8e\video\images\scene_2.mp4, 1769472 bytes wanted but 0 bytes read at frame index 19 (out of a total 20 frames), at time 2.71/2.86 sec. Using the last valid frame instead.
+C:\Users\HP\Desktop\Agentic_Project\AgenticAI-Project-PromptToFilm\Agentic Project\.venv\Lib\site-packages\moviepy\video\io\ffmpeg_reader.py:157: UserWarning: In file C:\Users\HP\Desktop\Agentic_Project\AgenticAI-Project-PromptToFilm\Agentic Project\data\outputs\proj_a-dramatic-sci-fi-standoff-a-female-cyber-ninja-wi_88f31e7993\video\images\scene_2.mp4, 1769472 bytes wanted but 0 bytes read at frame index 19 (out of a total 20 frames), at time 2.71/2.86 sec. Using the last valid frame instead.
   warnings.warn(
-2026-05-02 18:49:06,726 ERROR asyncio: Exception in callback _ProactorBasePipeTransport._call_connection_lost()
+2026-05-03 20:17:11,792 ERROR asyncio: Exception in callback _ProactorBasePipeTransport._call_connection_lost()
+handle: <Handle _ProactorBasePipeTransport._call_connection_lost()>
+Traceback (most recent call last):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python313\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python313\Lib\asyncio\proactor_events.py", line 165, in _call_connection_lost
+    self._sock.shutdown(socket.SHUT_RDWR)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+2026-05-03 20:20:36,697 ERROR asyncio: Exception in callback _ProactorBasePipeTransport._call_connection_lost()
+handle: <Handle _ProactorBasePipeTransport._call_connection_lost()>
+Traceback (most recent call last):
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python313\Lib\asyncio\events.py", line 89, in _run
+    self._context.run(self._callback, *self._args)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python313\Lib\asyncio\proactor_events.py", line 165, in _call_connection_lost
+    self._sock.shutdown(socket.SHUT_RDWR)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+2026-05-03 20:22:19,059 ERROR asyncio: Exception in callback _ProactorBasePipeTransport._call_connection_lost()
 handle: <Handle _ProactorBasePipeTransport._call_connection_lost()>
 Traceback (most recent call last):
   File "C:\Users\HP\AppData\Local\Programs\Python\Python313\Lib\asyncio\events.py", line 89, in _run

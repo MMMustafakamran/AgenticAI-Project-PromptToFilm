@@ -18,11 +18,43 @@ class AudioAgent:
     def run(self, state: ProjectState, progress_cb: Callable[[int, str], None] | None = None) -> ProjectState:
         project_dir = OUTPUTS_ROOT / state.project_id / "audio"
         project_dir.mkdir(parents=True, exist_ok=True)
+
+        # --- BGM-ONLY FAST PATH ---
+        # If the timing manifest already has valid audio files, skip TTS entirely
+        # and only redo BGM generation + audio stitch. Used for BGM volume edits.
+        from pathlib import Path as _Path
+        existing_manifest = state.audio.timing_manifest
+        if existing_manifest and all(_Path(e.audio_file).exists() for e in existing_manifest):
+            if progress_cb: progress_cb(85, "Re-generating background music...")
+            bgm_duration = max(20, int(max(
+                (max(e.end_ms for e in existing_manifest) / 1000),
+                sum(scene.duration_sec for scene in state.scenes)
+            )))
+            bgm_track_path = project_dir / "bgm.wav"
+            bgm_track = create_bgm_track(
+                state.scenes[0].mood if state.scenes else "calm",
+                bgm_duration,
+                bgm_track_path,
+            )
+            if progress_cb: progress_cb(95, "Re-stitching audio with updated BGM volume...")
+            final_audio = stitch_audio(
+                timing_manifest=existing_manifest,
+                bgm_track=bgm_track,
+                output_path=project_dir / "final_audio.wav",
+                bgm_volume=state.audio.bgm_volume,
+            )
+            state.audio.bgm_track = bgm_track
+            state.audio.final_audio_path = final_audio
+            state.artifacts.final_audio = final_audio
+            if progress_cb: progress_cb(100, "Audio re-stitch complete")
+            return state
+        # --- END FAST PATH ---
+
         dialogue_tracks: list[DialogueTrack] = []
         timing_manifest: list[TimingManifestEntry] = []
         current_ms = 0
         providers_used: list[str] = []
-        
+
         total_lines = sum(len(scene.dialogue) for scene in state.scenes)
         lines_processed = 0
 

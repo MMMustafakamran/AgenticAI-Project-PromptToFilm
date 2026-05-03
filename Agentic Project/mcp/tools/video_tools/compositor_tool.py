@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
+import numpy as np
+from PIL import Image, ImageEnhance
 
 from shared.schemas.project_state import ProjectState
 
@@ -18,8 +21,45 @@ def _scene_duration_sec(state: ProjectState, scene_id: str, fallback_duration: i
     return max(1.0, (end_ms - start_ms) / 1000)
 
 
+def zoom_effect(clip, mode="in"):
+    """MoviePy transform function to create a steady zoom effect on an ImageClip or VideoClip."""
+    def transform_frame(get_frame, t):
+        frame = get_frame(t)
+        img = Image.fromarray(frame)
+        w, h = img.size
+        
+        # Calculate subtle zoom factor
+        duration = max(clip.duration, 1.0)
+        if mode == "in":
+            factor = 1.0 + (0.35 * (t / duration))
+        else:
+            factor = 1.35 - (0.35 * (t / duration))
+            
+        new_w = int(w * factor)
+        new_h = int(h * factor)
+        resized_img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+        
+        # Crop back to original dimensions centered
+        left = (new_w - w) // 2
+        top = (new_h - h) // 2
+        return np.array(resized_img.crop((left, top, left + w, top + h)))
+
+    return clip.transform(transform_frame)
+
+
+def color_effect(clip, factor=1.0):
+    """MoviePy transform function to adjust brightness/color grading via PIL."""
+    def transform_frame(get_frame, t):
+        frame = get_frame(t)
+        img = Image.fromarray(frame)
+        enhanced = ImageEnhance.Brightness(img).enhance(factor)
+        return np.array(enhanced)
+
+    return clip.transform(transform_frame)
+
+
 def compose_video(state: ProjectState, output_path: Path) -> str:
-    from moviepy import AudioFileClip, CompositeVideoClip, ImageClip, VideoFileClip, TextClip, concatenate_videoclips, vfx
+    from moviepy import AudioFileClip, CompositeVideoClip, ImageClip, VideoFileClip, TextClip, concatenate_videoclips
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     clips = []
@@ -27,7 +67,7 @@ def compose_video(state: ProjectState, output_path: Path) -> str:
     for scene in state.scenes:
         scene_duration = _scene_duration_sec(state, scene.scene_id, scene.duration_sec)
         
-        if scene.image_path.endswith(".mp4"):
+        if scene.image_path and scene.image_path.endswith(".mp4"):
             video_clip = VideoFileClip(scene.image_path).resized(height=720).with_position("center")
             if video_clip.duration < scene_duration:
                 repeats = int(scene_duration / video_clip.duration) + 1
@@ -41,7 +81,22 @@ def compose_video(state: ProjectState, output_path: Path) -> str:
                 .resized(height=720)
                 .with_position("center")
             )
-            animated = image_clip.resized(lambda t: 1.0 + (0.05 * (t / max(scene_duration, 1))))
+            animated = image_clip
+            
+        # Apply visual effects using the Pillow transforms to BOTH images and videos
+        p_lower = scene.visual_prompt.lower() if scene.visual_prompt else ""
+        
+        # Zoom effects
+        if "zoom out" in p_lower:
+            animated = zoom_effect(animated, mode="out")
+        elif "zoom in" in p_lower or "zoom" in p_lower or "pan" in p_lower:
+            animated = zoom_effect(animated, mode="in")
+
+        # Brightness/darkness effects
+        if "dark" in p_lower:
+            animated = color_effect(animated, factor=0.7)
+        elif "bright" in p_lower or "light" in p_lower or "vivid" in p_lower:
+            animated = color_effect(animated, factor=1.3)
             
         overlays = [animated]
         if state.video.subtitles_enabled:
